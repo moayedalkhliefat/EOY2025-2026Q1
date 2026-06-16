@@ -1,0 +1,3166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Cycle Adventure Game</title>
+<style>
+  :root {
+    --blue-deep: #0a3d62;
+    --blue-mid: #1e6fa5;
+    --blue-light: #74b9e7;
+    --sky: #87CEEB;
+    --cloud: #f0f8ff;
+    --green: #27ae60;
+    --green-light: #2ecc71;
+    --sun: #f39c12;
+    --sun-light: #f9ca24;
+    --rain: #3498db;
+    --gold: #f1c40f;
+    --silver: #95a5a6;
+    --correct: #27ae60;
+    --wrong: #e74c3c;
+    --purple: #8e44ad;
+    --white: #ffffff;
+    --dark: #2c3e50;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a3d62 0%, #1e6fa5 30%, #74b9e7 60%, #87CEEB 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #2c3e50;
+  }
+
+  /* Animated background water drops */
+  .bg-drops {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .drop {
+    position: absolute;
+    width: 6px;
+    height: 12px;
+    background: rgba(116, 185, 231, 0.3);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: fall linear infinite;
+  }
+
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(15deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.5; }
+    100% { transform: translateY(100vh) rotate(15deg); opacity: 0; }
+  }
+
+  /* SCREENS */
+  .screen {
+    display: none;
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    padding: 10px;
+  }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* HEADER BAR */
+  .top-bar {
+    width: 100%;
+    background: rgba(10, 61, 98, 0.92);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .top-bar .info-chip {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 4px 10px;
+    color: white;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+  }
+
+  .score-chip {
+    background: linear-gradient(135deg, #f39c12, #f9ca24) !important;
+    color: #2c3e50 !important;
+    font-weight: 700 !important;
+  }
+
+  /* REGISTRATION SCREEN */
+  .reg-container {
+    background: rgba(255,255,255,0.95);
+    border-radius: 30px;
+    padding: 50px 40px;
+    max-width: 550px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    margin-top: 20px;
+    animation: slideIn 0.8s ease;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .water-logo {
+    font-size: 4rem;
+    margin-bottom: 10px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .reg-title {
+    font-size: 2rem;
+    color: var(--blue-deep);
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+
+  .reg-subtitle {
+    color: var(--blue-mid);
+    margin-bottom: 30px;
+    font-size: 1rem;
+  }
+
+  .reg-input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 3px solid #ddd;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    outline: none;
+    transition: all 0.3s;
+    margin-bottom: 15px;
+    background: #f8f9ff;
+  }
+
+  .reg-input:focus {
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 20px rgba(30,111,165,0.2);
+    background: white;
+  }
+
+  .btn-start {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .btn-start.enabled {
+    opacity: 1;
+    pointer-events: all;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(30,111,165,0.4); }
+    50% { box-shadow: 0 0 0 15px rgba(30,111,165,0); }
+  }
+
+  .btn-start.enabled:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(30,111,165,0.4);
+  }
+
+  /* MAIN GAME LAYOUT */
+  .game-layout {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* VEHICLE PANEL */
+  .vehicle-panel {
+    width: 280px;
+    min-width: 260px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 20px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    height: fit-content;
+    position: sticky;
+    top: 10px;
+  }
+
+  .vehicle-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--blue-deep);
+    text-align: center;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .vehicle-display {
+    width: 260px;
+    height: 160px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .vehicle-stage-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--blue-mid);
+    text-align: center;
+    margin-bottom: 5px;
+  }
+
+  .vehicle-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .vehicle-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-light), var(--blue-mid));
+    border-radius: 10px;
+    transition: width 1s ease;
+  }
+
+  .stage-dots {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stage-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: all 0.5s;
+  }
+
+  .stage-dot.active {
+    background: var(--blue-mid);
+    box-shadow: 0 0 8px var(--blue-mid);
+  }
+
+  .stage-dot.completed {
+    background: var(--green);
+  }
+
+  /* MAIN CONTENT AREA */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    background: rgba(255,255,255,0.92);
+    border-radius: 20px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+  }
+
+  .section-badge {
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-light));
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .section-badge.not-graded {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6);
+  }
+
+  /* QUESTION CARD */
+  .question-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    animation: questionIn 0.5s ease;
+    margin-bottom: 15px;
+  }
+
+  @keyframes questionIn {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .question-counter {
+    font-size: 0.85rem;
+    color: var(--blue-mid);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: #eee;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--blue-mid));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .choice-btn {
+    padding: 12px 18px;
+    background: #f8f9ff;
+    border: 2px solid #e0e6ff;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+    font-weight: 500;
+    color: var(--dark);
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    background: #e8f0fe;
+    border-color: var(--blue-mid);
+    transform: translateX(5px);
+  }
+
+  .choice-btn.correct {
+    background: #d5f5e3;
+    border-color: var(--correct);
+    color: #1a6b3c;
+  }
+
+  .choice-btn.wrong {
+    background: #fde8e8;
+    border-color: var(--wrong);
+    color: #922b21;
+  }
+
+  .choice-btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .tf-btns {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+  }
+
+  .tf-btn {
+    flex: 1;
+    padding: 20px;
+    border: 3px solid #e0e6ff;
+    border-radius: 15px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f8f9ff;
+  }
+
+  .tf-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+  }
+
+  .tf-btn.true-btn { color: var(--green); }
+  .tf-btn.false-btn { color: var(--wrong); }
+
+  .tf-btn.correct {
+    background: #d5f5e3;
+    border-color: var(--correct);
+  }
+
+  .tf-btn.wrong {
+    background: #fde8e8;
+    border-color: var(--wrong);
+  }
+
+  .feedback-box {
+    margin-top: 15px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .feedback-box.correct {
+    background: #d5f5e3;
+    color: #1a6b3c;
+    border: 2px solid var(--correct);
+  }
+
+  .feedback-box.wrong {
+    background: #fde8e8;
+    color: #922b21;
+    border: 2px solid var(--wrong);
+  }
+
+  .btn-next {
+    margin-top: 15px;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(30,111,165,0.4);
+  }
+
+  /* STUDY NOTES PANEL */
+  .notes-toggle-btn {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    border-radius: 15px 0 0 15px;
+    padding: 15px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 1000;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 1px;
+    box-shadow: -3px 0 15px rgba(0,0,0,0.2);
+    transition: all 0.3s;
+  }
+
+  .notes-toggle-btn:hover {
+    background: linear-gradient(135deg, #229954, #27ae60);
+    padding-left: 15px;
+  }
+
+  .notes-panel {
+    position: fixed;
+    right: -420px;
+    top: 0;
+    width: 420px;
+    height: 100vh;
+    background: white;
+    z-index: 999;
+    box-shadow: -5px 0 30px rgba(0,0,0,0.3);
+    transition: right 0.4s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .notes-panel.open {
+    right: 0;
+  }
+
+  .notes-panel-header {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .notes-panel-header h3 { font-size: 1.1rem; }
+
+  .notes-close-btn {
+    background: rgba(255,255,255,0.3);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .notes-close-btn:hover { background: rgba(255,255,255,0.5); }
+
+  .notes-search {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
+  }
+
+  .notes-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .notes-search input:focus { border-color: #27ae60; }
+
+  .notes-reminder {
+    background: #fff3cd;
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    color: #856404;
+    border-bottom: 1px solid #ffc107;
+    text-align: center;
+    font-style: italic;
+  }
+
+  .notes-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 20px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: #333;
+  }
+
+  .notes-content h2 {
+    color: var(--blue-deep);
+    font-size: 1rem;
+    margin: 15px 0 8px;
+    border-bottom: 2px solid var(--blue-light);
+    padding-bottom: 5px;
+  }
+
+  .notes-content h3 {
+    color: var(--blue-mid);
+    font-size: 0.95rem;
+    margin: 12px 0 6px;
+  }
+
+  .notes-content p { margin-bottom: 8px; }
+  .notes-content ul { padding-left: 20px; margin-bottom: 8px; }
+  .notes-content li { margin-bottom: 4px; }
+
+  .notes-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.82rem;
+  }
+
+  .notes-content th {
+    background: var(--blue-deep);
+    color: white;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  .notes-content td {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+  }
+
+  .notes-content tr:nth-child(even) td { background: #f5f9ff; }
+
+  .highlight { background: yellow; border-radius: 3px; }
+
+  /* MATCHING ACTIVITY */
+  .matching-container {
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+
+  .matching-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    position: relative;
+  }
+
+  .match-col { display: flex; flex-direction: column; gap: 10px; }
+
+  .match-item {
+    padding: 10px 14px;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s;
+    background: #f8f9ff;
+    user-select: none;
+    text-align: center;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .match-item:hover { background: #e8f0fe; border-color: var(--blue-mid); }
+  .match-item.selected { background: #d0e8ff; border-color: var(--blue-mid); transform: scale(1.02); }
+  .match-item.matched { background: #d5f5e3; border-color: var(--correct); cursor: default; }
+  .match-item.wrong-match { background: #fde8e8; border-color: var(--wrong); animation: shake 0.4s; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .matching-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* MEMORY GAME */
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .memory-card {
+    aspect-ratio: 1;
+    perspective: 1000px;
+    cursor: pointer;
+  }
+
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+    border-radius: 12px;
+  }
+
+  .memory-card.flipped .card-inner { transform: rotateY(180deg); }
+  .memory-card.matched .card-inner { transform: rotateY(180deg); }
+
+  .card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 8px;
+  }
+
+  .card-front {
+    background: linear-gradient(135deg, var(--blue-deep), var(--blue-mid));
+    color: white;
+    font-size: 1.5rem;
+  }
+
+  .card-back {
+    background: white;
+    border: 3px solid var(--blue-light);
+    color: var(--dark);
+    transform: rotateY(180deg);
+    font-size: 0.75rem;
+  }
+
+  .memory-card.matched .card-back {
+    background: #d5f5e3;
+    border-color: var(--correct);
+    animation: matchPop 0.3s ease;
+  }
+
+  @keyframes matchPop {
+    0%, 100% { transform: rotateY(180deg) scale(1); }
+    50% { transform: rotateY(180deg) scale(1.1); }
+  }
+
+  .memory-stats {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .memory-stat {
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-weight: 700;
+    color: var(--blue-deep);
+    font-size: 0.9rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+
+  /* RESULTS SCREEN */
+  .results-card {
+    background: rgba(255,255,255,0.97);
+    border-radius: 25px;
+    padding: 30px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideIn 0.8s ease;
+    margin: 10px auto;
+  }
+
+  .results-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    margin-bottom: 20px;
+  }
+
+  .score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(var(--green) 0%, var(--green) var(--pct), #eee var(--pct), #eee 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+  }
+
+  .score-circle-inner {
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-pct {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--dark);
+  }
+
+  .score-label { font-size: 0.75rem; color: #888; }
+
+  .results-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 20px 0;
+  }
+
+  .breakdown-item {
+    background: #f8f9ff;
+    border-radius: 12px;
+    padding: 12px 15px;
+    border: 2px solid #e0e6ff;
+  }
+
+  .breakdown-label { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
+  .breakdown-value { font-size: 1.2rem; font-weight: 800; color: var(--blue-deep); }
+
+  .rating-badge {
+    display: inline-block;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 15px auto;
+    text-align: center;
+  }
+
+  .rating-excellent { background: linear-gradient(135deg, #f39c12, #f9ca24); color: #2c3e50; }
+  .rating-vgood { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+  .rating-good { background: linear-gradient(135deg, #2980b9, #3498db); color: white; }
+  .rating-needs { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+
+  /* CERTIFICATE */
+  .certificate {
+    background: white;
+    border: 15px solid var(--blue-deep);
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 750px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+    margin: 20px auto;
+  }
+
+  .cert-inner-border {
+    border: 3px solid var(--gold);
+    border-radius: 8px;
+    padding: 30px;
+    position: relative;
+  }
+
+  .cert-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 6rem;
+    opacity: 0.04;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .cert-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+  }
+
+  .cert-subtitle {
+    font-size: 1rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: 3px;
+  }
+
+  .cert-school {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+
+  .cert-presented {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 10px;
+  }
+
+  .cert-name {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    border-bottom: 3px solid var(--gold);
+    display: inline-block;
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+
+  .cert-body {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .cert-score {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .cert-sigs {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+  }
+
+  .cert-sig {
+    text-align: center;
+    flex: 1;
+  }
+
+  .cert-sig-line {
+    width: 80%;
+    height: 2px;
+    background: var(--dark);
+    margin: 8px auto 5px;
+  }
+
+  .cert-sig-name { font-weight: 700; color: var(--dark); font-size: 0.9rem; }
+  .cert-sig-title { font-size: 0.75rem; color: #888; }
+
+  .cert-seal {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--blue-deep);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-align: center;
+    border: 3px solid var(--gold);
+    position: absolute;
+    bottom: 50px;
+    right: 60px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.3);
+    line-height: 1.3;
+    padding: 5px;
+  }
+
+  .cert-date {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 10px;
+  }
+
+  .btn-print, .btn-cert {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 5px;
+  }
+
+  .btn-print {
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+  }
+
+  .btn-cert {
+    background: linear-gradient(135deg, var(--gold), #e67e22);
+    color: var(--dark);
+  }
+
+  .btn-print:hover, .btn-cert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+  }
+
+  /* SECTION INTRO CARD */
+  .intro-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 25px;
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideIn 0.6s ease;
+    margin: 20px auto;
+  }
+
+  .intro-icon { font-size: 4rem; margin-bottom: 15px; animation: float 3s infinite; }
+  .intro-title { font-size: 1.8rem; font-weight: 800; color: var(--blue-deep); margin-bottom: 10px; }
+  .intro-desc { color: #555; margin-bottom: 25px; line-height: 1.6; }
+  .intro-info { background: #f0f8ff; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+  .intro-info p { font-size: 0.9rem; color: var(--blue-mid); margin-bottom: 5px; }
+
+  .btn-begin {
+    padding: 15px 35px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-begin:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(30,111,165,0.4);
+  }
+
+  /* CONFETTI */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    top: -10px;
+    animation: confettiFall linear forwards;
+    z-index: 9999;
+    pointer-events: none;
+    border-radius: 2px;
+  }
+
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+
+  /* LOCKED OVERLAY */
+  .locked-overlay {
+    background: rgba(255,255,255,0.95);
+    border-radius: 25px;
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    margin: 30px auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideIn 0.6s ease;
+  }
+
+  .locked-overlay .lock-icon { font-size: 5rem; margin-bottom: 15px; }
+  .locked-overlay h2 { font-size: 1.8rem; color: var(--wrong); margin-bottom: 15px; }
+  .locked-overlay p { color: #555; margin-bottom: 20px; line-height: 1.6; }
+
+  /* DATETIME */
+  .datetime-chip {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+  }
+
+  /* CLOUD ANIMATION */
+  @keyframes cloudDrift {
+    from { transform: translateX(-100px); }
+    to { transform: translateX(calc(100vw + 100px)); }
+  }
+
+  .cloud {
+    position: fixed;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* MUSIC BUTTON */
+  .music-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(10,61,98,0.85);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.3);
+  }
+
+  .music-btn:hover { transform: scale(1.1); }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .game-layout { flex-direction: column; }
+    .vehicle-panel { width: 100%; min-width: unset; position: static; }
+    .vehicle-display { width: 100%; }
+    .notes-panel { width: 100%; right: -100%; }
+    .notes-panel.open { right: 0; }
+    .results-breakdown { grid-template-columns: 1fr; }
+    .cert-sigs { flex-direction: column; gap: 20px; }
+  }
+
+  /* CELEBRATION GLOW */
+  @keyframes celebrationGlow {
+    0%, 100% { box-shadow: 0 0 20px #f9ca24, 0 0 40px #f9ca24; }
+    50% { box-shadow: 0 0 40px #f9ca24, 0 0 80px #f9ca24, 0 0 120px #f9ca24; }
+  }
+
+  .celebration-glow { animation: celebrationGlow 1.5s infinite; }
+
+  /* WAVING EMOJI */
+  @keyframes wave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(20deg); }
+    75% { transform: rotate(-10deg); }
+  }
+
+  .wave { display: inline-block; animation: wave 1s infinite; }
+
+  /* TRANSITION OVERLAY */
+  .transition-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, var(--blue-deep), var(--blue-mid));
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  .transition-overlay.show { opacity: 1; pointer-events: all; }
+  .transition-overlay .t-icon { font-size: 4rem; margin-bottom: 15px; animation: float 1s infinite; }
+
+  .btn-retry {
+    margin-top: 15px;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-retry:hover { transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg-drops" id="bgDrops"></div>
+
+<!-- Transition overlay -->
+<div class="transition-overlay" id="transitionOverlay">
+  <div class="t-icon" id="transitionIcon">💧</div>
+  <div id="transitionText">Loading...</div>
+</div>
+
+<!-- Study Notes Panel -->
+<button class="notes-toggle-btn" id="notesToggleBtn" onclick="toggleNotes()" style="display:none">📖 Study Notes</button>
+
+<div class="notes-panel" id="notesPanel">
+  <div class="notes-panel-header">
+    <h3>📖 Study Notes — Water Cycle</h3>
+    <button class="notes-close-btn" onclick="toggleNotes()">✕</button>
+  </div>
+  <div class="notes-search">
+    <input type="text" id="notesSearch" placeholder="🔍 Search notes..." oninput="searchNotes(this.value)">
+  </div>
+  <div class="notes-reminder">💡 Use these notes to help you answer — but try to remember on your own first!</div>
+  <div class="notes-content" id="notesContent">
+    <h2>🌊 Study Notes: The Water Cycle</h2>
+    <h3>KPI</h3>
+    <p>Students will describe the cycling of water through Earth's systems driven by energy from the sun and the force of gravity.</p>
+
+    <h2>🔑 What Drives the Water Cycle?</h2>
+    <ul>
+      <li><strong>Two driving forces:</strong> Energy from the Sun and the force of Gravity</li>
+      <li>The Sun provides energy for <em>evaporation</em> and <em>transpiration</em></li>
+      <li>Gravity pulls water downhill (runoff) and causes precipitation to fall</li>
+    </ul>
+
+    <h2>🔄 Key Processes</h2>
+    <table>
+      <tr><th>Process</th><th>Definition</th></tr>
+      <tr><td>Evaporation</td><td>A liquid (water) changes into a gas (water vapor) at the surface</td></tr>
+      <tr><td>Transpiration</td><td>Plants release water vapor into the atmosphere through leaves</td></tr>
+      <tr><td>Condensation</td><td>A gas (water vapor) changes back into a liquid; forms cloud droplets</td></tr>
+      <tr><td>Crystallization</td><td>A liquid turns into a crystalline solid</td></tr>
+      <tr><td>Precipitation</td><td>Water droplets fall as rain, snow, sleet, or hail</td></tr>
+      <tr><td>Surface Runoff</td><td>Water flows downhill over the land surface</td></tr>
+    </table>
+
+    <h2>💧 Where Is Water Stored?</h2>
+    <ul>
+      <li>On Earth's surface — oceans, lakes, rivers, streams</li>
+      <li>In the atmosphere — as water vapor and in clouds</li>
+      <li>Underground — in cracks and pores (groundwater)</li>
+      <li>Ice caps and glaciers — frozen water at the poles</li>
+    </ul>
+    <p><strong>💡 Storage areas are called RESERVOIRS.</strong></p>
+
+    <h2>🌍 Earth's Systems (Spheres)</h2>
+    <table>
+      <tr><th>Sphere</th><th>Role</th></tr>
+      <tr><td>Atmosphere</td><td>Where water vapor goes; where clouds form</td></tr>
+      <tr><td>Hydrosphere</td><td>All water on Earth (oceans, lakes, rivers, groundwater, ice)</td></tr>
+      <tr><td>Biosphere</td><td>Living things; plants release water via transpiration</td></tr>
+      <tr><td>Geosphere</td><td>Land surfaces and underground rocks/soil</td></tr>
+    </table>
+    <ul>
+      <li>Atmosphere and hydrosphere overlap (water exists in both)</li>
+      <li>Water leaves biosphere → enters atmosphere through transpiration</li>
+      <li>When water evaporates, it enters the atmosphere</li>
+    </ul>
+
+    <h2>📌 Important Facts</h2>
+    <ul>
+      <li>The water cycle has <strong>NO beginning or end</strong> — it is continuous</li>
+      <li>Evaporation happens from bodies of water, trees, humans — all of the above</li>
+      <li>The Sun breaks bonds between water molecules → they escape as gas</li>
+      <li>Clouds form when water vapor rises, cools, and condenses</li>
+      <li><strong>Erosion</strong> is NOT a type of precipitation</li>
+      <li><strong>Nitrogen fixation</strong> is NOT part of the water cycle</li>
+      <li>Surface runoff flows downhill due to gravity</li>
+    </ul>
+
+    <h2>🧠 Memory Tips</h2>
+    <p><strong>"E-T-C-C-P-R"</strong> — Evaporation → Transpiration → Condensation → Cloud formation → Precipitation → Runoff</p>
+    <p>☀️ <strong>Sun = Energy UP</strong> (evaporation, transpiration)</p>
+    <p>⬇️ <strong>Gravity = Water DOWN</strong> (precipitation, runoff)</p>
+    <p>🌿 Transpiration = Trans + plant → water transfers out of plants</p>
+    <p>💧 Condensation = water contracts from gas back to liquid (cooling)</p>
+    <p>🏺 Reservoirs = Reserve = where water is reserved/stored</p>
+  </div>
+</div>
+
+<!-- Background music button -->
+<button class="music-btn" id="musicBtn" onclick="toggleMusic()" title="Toggle Music">🎵</button>
+
+<!-- ============ SCREEN 1: REGISTRATION ============ -->
+<div class="screen active" id="screenReg">
+  <div style="text-align:center; padding:20px; color:white; font-size:0.9rem;">
+    <span id="regDateTime"></span>
+  </div>
+  <div class="reg-container">
+    <div class="water-logo">💧</div>
+    <div class="reg-title">Water Cycle Adventure</div>
+    <div class="reg-subtitle">An Interactive Educational Journey Through Earth's Water Systems</div>
+    <div style="margin-bottom:20px; padding:15px; background:#f0f8ff; border-radius:12px; font-size:0.9rem; color:#333;">
+      <strong>🎮 Game Sections:</strong><br>
+      📝 MCQs (Graded) → ✅ True/False (Graded) → 🔗 Matching (Graded) → 🃏 Memory Game (Required)
+    </div>
+    <input class="reg-input" type="text" id="studentNameInput" placeholder="Enter your full name..." oninput="checkName()" maxlength="60">
+    <div id="nameError" style="color:#e74c3c; font-size:0.85rem; margin-bottom:10px; display:none;">Please enter your full name (at least 2 words).</div>
+    <button class="btn-start" id="startBtn" onclick="startGame()">🚀 Start My Adventure!</button>
+  </div>
+</div>
+
+<!-- ============ SCREEN 2: SECTION INTRO ============ -->
+<div class="screen" id="screenIntro">
+  <div class="top-bar" id="introTopBar"></div>
+  <div class="intro-card" id="introCard"></div>
+</div>
+
+<!-- ============ SCREEN 3: MCQ ============ -->
+<div class="screen" id="screenMCQ">
+  <div class="top-bar" id="mcqTopBar"></div>
+  <div class="game-layout">
+    <div class="vehicle-panel" id="mcqVehicle"></div>
+    <div class="main-content">
+      <div class="section-header">
+        <div class="section-title">📝 Multiple Choice Questions <span class="section-badge">✓ GRADED</span></div>
+      </div>
+      <div id="mcqQuestionArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 4: TRUE/FALSE ============ -->
+<div class="screen" id="screenTF">
+  <div class="top-bar" id="tfTopBar"></div>
+  <div class="game-layout">
+    <div class="vehicle-panel" id="tfVehicle"></div>
+    <div class="main-content">
+      <div class="section-header">
+        <div class="section-title">✅ True or False <span class="section-badge">✓ GRADED</span></div>
+      </div>
+      <div id="tfQuestionArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 5: MATCHING ============ -->
+<div class="screen" id="screenMatch">
+  <div class="top-bar" id="matchTopBar"></div>
+  <div class="game-layout">
+    <div class="vehicle-panel" id="matchVehicle"></div>
+    <div class="main-content">
+      <div class="section-header">
+        <div class="section-title">🔗 Matching Activity <span class="section-badge">✓ GRADED</span></div>
+      </div>
+      <div id="matchArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 6: GATE CHECK ============ -->
+<div class="screen" id="screenGate">
+  <div class="top-bar" id="gateTopBar"></div>
+  <div id="gateContent"></div>
+</div>
+
+<!-- ============ SCREEN 7: MEMORY GAME ============ -->
+<div class="screen" id="screenMemory">
+  <div class="top-bar" id="memoryTopBar"></div>
+  <div class="game-layout">
+    <div class="vehicle-panel" id="memoryVehicle"></div>
+    <div class="main-content">
+      <div class="section-header">
+        <div class="section-title">🃏 Memory Matching Challenge <span class="section-badge not-graded">NOT GRADED — Required</span></div>
+      </div>
+      <div style="background:#fff3cd; border-radius:12px; padding:12px; margin-bottom:15px; font-size:0.9rem; color:#856404; font-weight:600; text-align:center;">
+        ⚠️ This activity is not graded, but you must complete it to receive your certificate!
+      </div>
+      <div class="memory-stats" id="memoryStats"></div>
+      <div class="memory-grid" id="memoryGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 8: RESULTS ============ -->
+<div class="screen" id="screenResults">
+  <div class="top-bar" id="resultsTopBar"></div>
+  <div id="resultsContent"></div>
+</div>
+
+<!-- ============ SCREEN 9: CERTIFICATE ============ -->
+<div class="screen" id="screenCert">
+  <div class="top-bar" id="certTopBar"></div>
+  <div id="certContent"></div>
+</div>
+
+<script>
+// ============================================================
+// GAME STATE
+// ============================================================
+const gameState = {
+  studentName: '',
+  currentScreen: 'reg',
+  vehicleStage: 0,
+  mcqScore: 0,
+  tfScore: 0,
+  matchScore: 0,
+  matchTotal: 0,
+  notesOpenCount: 0,
+  notesOpen: false,
+  musicPlaying: false,
+  mcqAnswered: 0,
+  tfAnswered: 0,
+  memoryCompleted: false,
+  memoryPairsFound: 0,
+  memoryTime: 0,
+  startTime: null,
+  completionDate: '',
+  completionTime: ''
+};
+
+// ============================================================
+// AUDIO ENGINE
+// ============================================================
+let audioCtx = null;
+let musicInterval = null;
+let musicNoteIdx = 0;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, vol=0.3, startDelay=0) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startDelay);
+    gain.gain.setValueAtTime(0, ctx.currentTime + startDelay);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + startDelay + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startDelay + duration);
+    osc.start(ctx.currentTime + startDelay);
+    osc.stop(ctx.currentTime + startDelay + duration + 0.05);
+  } catch(e) {}
+}
+
+function playCorrect() {
+  playTone(523, 'sine', 0.15, 0.3, 0);
+  playTone(659, 'sine', 0.15, 0.3, 0.1);
+  playTone(784, 'sine', 0.25, 0.3, 0.2);
+}
+
+function playWrong() {
+  playTone(330, 'sawtooth', 0.1, 0.2, 0);
+  playTone(262, 'sawtooth', 0.25, 0.2, 0.1);
+}
+
+function playLevelComplete() {
+  [523,659,784,1047].forEach((f,i) => playTone(f,'sine',0.3,0.35,i*0.12));
+}
+
+function playAchievement() {
+  [784,988,1175,1568].forEach((f,i) => playTone(f,'sine',0.4,0.4,i*0.1));
+}
+
+function playCertificate() {
+  [523,659,784,988,1175,1568].forEach((f,i) => playTone(f,'sine',0.5,0.45,i*0.12));
+}
+
+function playCardFlip() {
+  playTone(880, 'sine', 0.08, 0.15, 0);
+}
+
+function playMatch() {
+  playTone(784,'sine',0.12,0.3,0);
+  playTone(988,'sine',0.2,0.3,0.1);
+}
+
+function playEngineRev() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(60, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.5);
+    osc.frequency.linearRampToValueAtTime(120, ctx.currentTime + 1.0);
+    osc.frequency.linearRampToValueAtTime(250, ctx.currentTime + 1.5);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.1);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 2.1);
+  } catch(e) {}
+}
+
+function playRainSound() {
+  try {
+    const ctx = getAudioCtx();
+    const bufSize = ctx.sampleRate * 0.5;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1)*0.1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    src.start();
+    src.stop(ctx.currentTime + 0.55);
+  } catch(e) {}
+}
+
+const bgMusicNotes = [262,294,330,349,392,440,494,523,494,440,392,349,330,294];
+function startMusic() {
+  if(musicInterval) return;
+  musicInterval = setInterval(() => {
+    if(!gameState.musicPlaying) return;
+    playTone(bgMusicNotes[musicNoteIdx % bgMusicNotes.length], 'sine', 0.4, 0.08);
+    musicNoteIdx++;
+  }, 400);
+}
+
+function toggleMusic() {
+  gameState.musicPlaying = !gameState.musicPlaying;
+  document.getElementById('musicBtn').textContent = gameState.musicPlaying ? '🔇' : '🎵';
+  if(gameState.musicPlaying) startMusic();
+}
+
+// ============================================================
+// BACKGROUND ANIMATION
+// ============================================================
+function createBgDrops() {
+  const container = document.getElementById('bgDrops');
+  for(let i=0;i<20;i++) {
+    const drop = document.createElement('div');
+    drop.className = 'drop';
+    drop.style.left = Math.random()*100 + 'vw';
+    drop.style.animationDuration = (3+Math.random()*5) + 's';
+    drop.style.animationDelay = (Math.random()*5) + 's';
+    drop.style.width = (4+Math.random()*6) + 'px';
+    drop.style.height = (8+Math.random()*12) + 'px';
+    container.appendChild(drop);
+  }
+  // Clouds
+  for(let i=0;i<3;i++) {
+    const cloud = document.createElement('div');
+    cloud.className = 'cloud';
+    cloud.style.top = (5+Math.random()*30) + 'vh';
+    cloud.style.width = (80+Math.random()*120) + 'px';
+    cloud.style.height = (40+Math.random()*30) + 'px';
+    cloud.style.animationName = 'cloudDrift';
+    cloud.style.animationDuration = (20+Math.random()*20) + 's';
+    cloud.style.animationDelay = (Math.random()*10) + 's';
+    cloud.style.animationTimingFunction = 'linear';
+    cloud.style.animationIterationCount = 'infinite';
+    document.body.appendChild(cloud);
+  }
+}
+
+// ============================================================
+// DATETIME
+// ============================================================
+function getDateTime() {
+  const now = new Date();
+  return now.toLocaleDateString('en-GB', {weekday:'short',year:'numeric',month:'short',day:'numeric'}) +
+    ' | ' + now.toLocaleTimeString('en-GB');
+}
+
+function updateAllDateTimes() {
+  const dt = getDateTime();
+  document.querySelectorAll('.datetime-display').forEach(el => el.textContent = dt);
+  const regDT = document.getElementById('regDateTime');
+  if(regDT) regDT.textContent = '🕐 ' + dt;
+}
+setInterval(updateAllDateTimes, 1000);
+updateAllDateTimes();
+
+// ============================================================
+// TOP BAR BUILDER
+// ============================================================
+function buildTopBar(containerId) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const pct = getScorePct();
+  el.innerHTML = `
+    <div class="info-chip">👤 ${gameState.studentName}</div>
+    <div class="info-chip score-chip">📊 Score: ${pct}% <span style="font-size:0.65rem;font-weight:500;"> (MCQ+T/F+Match)</span></div>
+    <div class="info-chip">🚗 Stage ${gameState.vehicleStage+1}: ${vehicleStages[gameState.vehicleStage].name}</div>
+    <div class="info-chip">📖 Notes Used: ${gameState.notesOpenCount}×</div>
+    <div class="info-chip datetime-chip datetime-display">🕐 Loading...</div>
+  `;
+}
+
+function updateAllTopBars() {
+  ['introTopBar','mcqTopBar','tfTopBar','matchTopBar','gateTopBar','memoryTopBar','resultsTopBar','certTopBar'].forEach(id => {
+    if(document.getElementById(id)) buildTopBar(id);
+  });
+}
+
+// ============================================================
+// VEHICLE STAGES
+// ============================================================
+const vehicleStages = [
+  { name: "1900s Horseless Carriage", era: "Stage 1", emoji: "🛺" },
+  { name: "1920s Model T", era: "Stage 2", emoji: "🚗" },
+  { name: "1950s Classic Car", era: "Stage 3", emoji: "🚕" },
+  { name: "1970s Muscle Car", era: "Stage 4", emoji: "🚘" },
+  { name: "1990s Sedan", era: "Stage 5", emoji: "🚗" },
+  { name: "2000s SUV", era: "Stage 6", emoji: "🚙" },
+  { name: "2010s Sports Car", era: "Stage 7", emoji: "🏎️" },
+  { name: "2024 Luxury Supercar", era: "Stage 8", emoji: "🏁" }
+];
+
+function getVehicleSVG(stage) {
+  const svgs = [
+    // Stage 0: 1900s Horseless Carriage
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs><radialGradient id="sky0" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="#87CEEB"/><stop offset="100%" stop-color="#f0f8ff"/></radialGradient></defs>
+      <rect width="260" height="130" fill="url(#sky0)" rx="10"/>
+      <!-- Ground -->
+      <rect x="0" y="105" width="260" height="25" fill="#8B7355" rx="0"/>
+      <rect x="0" y="103" width="260" height="4" fill="#6B5A3E"/>
+      <!-- Body -->
+      <rect x="40" y="60" width="160" height="45" fill="#8B4513" rx="8"/>
+      <!-- Seat -->
+      <rect x="80" y="45" width="80" height="20" fill="#D2691E" rx="5"/>
+      <!-- Frame -->
+      <rect x="50" y="75" width="140" height="5" fill="#5C3317"/>
+      <!-- Steering wheel -->
+      <ellipse cx="130" cy="52" rx="20" ry="5" fill="none" stroke="#333" stroke-width="2.5"/>
+      <line x1="130" y1="47" x2="130" y2="60" stroke="#333" stroke-width="2"/>
+      <!-- Front axle -->
+      <rect x="35" y="95" width="30" height="5" fill="#555" rx="2"/>
+      <!-- Rear axle -->
+      <rect x="185" y="95" width="30" height="5" fill="#555" rx="2"/>
+      <!-- Wheels (spoke wheels) -->
+      <!-- Front left wheel -->
+      <circle cx="55" cy="100" r="18" fill="#8B6914" stroke="#5C4A1E" stroke-width="3"/>
+      <circle cx="55" cy="100" r="10" fill="none" stroke="#5C4A1E" stroke-width="2"/>
+      <circle cx="55" cy="100" r="4" fill="#5C4A1E"/>
+      <line x1="55" y1="82" x2="55" y2="118" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="37" y1="100" x2="73" y2="100" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="42" y1="87" x2="68" y2="113" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="68" y1="87" x2="42" y2="113" stroke="#5C4A1E" stroke-width="1.5"/>
+      <!-- Rear left wheel -->
+      <circle cx="200" cy="100" r="18" fill="#8B6914" stroke="#5C4A1E" stroke-width="3"/>
+      <circle cx="200" cy="100" r="10" fill="none" stroke="#5C4A1E" stroke-width="2"/>
+      <circle cx="200" cy="100" r="4" fill="#5C4A1E"/>
+      <line x1="200" y1="82" x2="200" y2="118" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="182" y1="100" x2="218" y2="100" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="187" y1="87" x2="213" y2="113" stroke="#5C4A1E" stroke-width="1.5"/>
+      <line x1="213" y1="87" x2="187" y2="113" stroke="#5C4A1E" stroke-width="1.5"/>
+      <!-- Lantern headlight -->
+      <rect x="35" y="68" width="10" height="14" fill="#FFD700" rx="2"/>
+      <rect x="33" y="66" width="14" height="4" fill="#888" rx="1"/>
+      <!-- Text -->
+      <text x="130" y="125" text-anchor="middle" font-size="8" fill="white" font-weight="bold">1900s Horseless Carriage</text>
+    </svg>`,
+
+    // Stage 1: 1920s Model T
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs><linearGradient id="bg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#a8d5f5"/><stop offset="100%" stop-color="#e0eecc"/></linearGradient></defs>
+      <rect width="260" height="130" fill="url(#bg1)" rx="10"/>
+      <rect x="0" y="105" width="260" height="25" fill="#7B7B7B" rx="0"/>
+      <rect x="0" y="103" width="260" height="4" fill="#555"/>
+      <!-- Road markings -->
+      <rect x="20" y="108" width="30" height="3" fill="#FFF" rx="1" opacity="0.5"/>
+      <rect x="70" y="108" width="30" height="3" fill="#FFF" rx="1" opacity="0.5"/>
+      <rect x="120" y="108" width="30" height="3" fill="#FFF" rx="1" opacity="0.5"/>
+      <rect x="170" y="108" width="30" height="3" fill="#FFF" rx="1" opacity="0.5"/>
+      <!-- Body -->
+      <rect x="45" y="65" width="160" height="40" fill="#1a1a1a" rx="5"/>
+      <!-- Top/cabin -->
+      <rect x="65" y="42" width="100" height="28" fill="#111" rx="5"/>
+      <!-- Windows -->
+      <rect x="72" y="47" width="38" height="18" fill="#87CEEB" rx="3" opacity="0.8"/>
+      <rect x="115" y="47" width="38" height="18" fill="#87CEEB" rx="3" opacity="0.8"/>
+      <!-- Running board -->
+      <rect x="50" y="100" width="155" height="5" fill="#333" rx="2"/>
+      <!-- Radiator/grille -->
+      <rect x="40" y="70" width="12" height="28" fill="#333" rx="2"/>
+      <line x1="43" y1="73" x2="43" y2="95" stroke="#888" stroke-width="1"/>
+      <line x1="46" y1="73" x2="46" y2="95" stroke="#888" stroke-width="1"/>
+      <line x1="49" y1="73" x2="49" y2="95" stroke="#888" stroke-width="1"/>
+      <!-- Headlight -->
+      <ellipse cx="43" cy="72" rx="8" ry="5" fill="#FFD700" stroke="#AAA" stroke-width="1"/>
+      <ellipse cx="43" cy="72" rx="5" ry="3" fill="#FFFACD"/>
+      <!-- Wheels -->
+      <circle cx="80" cy="103" r="16" fill="#1a1a1a" stroke="#888" stroke-width="3"/>
+      <circle cx="80" cy="103" r="8" fill="#444"/>
+      <circle cx="80" cy="103" r="4" fill="#888"/>
+      <line x1="80" y1="87" x2="80" y2="119" stroke="#888" stroke-width="1.5"/>
+      <line x1="64" y1="103" x2="96" y2="103" stroke="#888" stroke-width="1.5"/>
+      <line x1="69" y1="92" x2="91" y2="114" stroke="#888" stroke-width="1.5"/>
+      <line x1="91" y1="92" x2="69" y2="114" stroke="#888" stroke-width="1.5"/>
+      <circle cx="185" cy="103" r="16" fill="#1a1a1a" stroke="#888" stroke-width="3"/>
+      <circle cx="185" cy="103" r="8" fill="#444"/>
+      <circle cx="185" cy="103" r="4" fill="#888"/>
+      <line x1="185" y1="87" x2="185" y2="119" stroke="#888" stroke-width="1.5"/>
+      <line x1="169" y1="103" x2="201" y2="103" stroke="#888" stroke-width="1.5"/>
+      <line x1="174" y1="92" x2="196" y2="114" stroke="#888" stroke-width="1.5"/>
+      <line x1="196" y1="92" x2="174" y2="114" stroke="#888" stroke-width="1.5"/>
+      <text x="130" y="126" text-anchor="middle" font-size="8" fill="white" font-weight="bold">1920s Model T</text>
+    </svg>`,
+
+    // Stage 2: 1950s Classic Car
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFE4B5"/><stop offset="100%" stop-color="#98D8C8"/></linearGradient>
+        <linearGradient id="car2body" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#DC143C"/><stop offset="100%" stop-color="#8B0000"/></linearGradient>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg2)" rx="10"/>
+      <rect x="0" y="105" width="260" height="25" fill="#888" rx="0"/>
+      <rect x="0" y="103" width="260" height="4" fill="#666"/>
+      <!-- Body main -->
+      <path d="M30 90 Q30 68 55 68 L200 68 Q230 68 232 88 L232 98 L30 98 Z" fill="url(#car2body)"/>
+      <!-- Fin tail left -->
+      <path d="M210 68 L240 55 L240 75 L220 80" fill="#B22222"/>
+      <!-- Fin tail right (other side implied) -->
+      <!-- Cabin -->
+      <path d="M65 68 Q70 42 85 40 L175 40 Q192 42 198 68 Z" fill="#C11230"/>
+      <!-- Windows -->
+      <rect x="72" y="44" width="50" height="22" fill="#87CEEB" rx="4" opacity="0.85"/>
+      <rect x="128" y="44" width="50" height="22" fill="#87CEEB" rx="4" opacity="0.85"/>
+      <!-- Chrome strip -->
+      <rect x="32" y="82" width="198" height="3" fill="#C0C0C0" rx="1"/>
+      <!-- Headlight round -->
+      <circle cx="38" cy="78" r="9" fill="#FFFACD" stroke="#C0C0C0" stroke-width="2"/>
+      <circle cx="38" cy="78" r="6" fill="#FFD700" opacity="0.9"/>
+      <!-- Tail light -->
+      <circle cx="228" cy="75" r="7" fill="#FF6347" stroke="#C0C0C0" stroke-width="2"/>
+      <!-- Chrome bumpers -->
+      <rect x="25" y="92" width="15" height="5" fill="#C0C0C0" rx="2"/>
+      <rect x="225" y="92" width="15" height="5" fill="#C0C0C0" rx="2"/>
+      <!-- Wheels -->
+      <circle cx="75" cy="103" r="17" fill="#222" stroke="#C0C0C0" stroke-width="3"/>
+      <circle cx="75" cy="103" r="9" fill="#555"/>
+      <circle cx="75" cy="103" r="5" fill="#C0C0C0"/>
+      <circle cx="185" cy="103" r="17" fill="#222" stroke="#C0C0C0" stroke-width="3"/>
+      <circle cx="185" cy="103" r="9" fill="#555"/>
+      <circle cx="185" cy="103" r="5" fill="#C0C0C0"/>
+      <!-- Wheel spokes -->
+      <line x1="75" y1="86" x2="75" y2="120" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="58" y1="103" x2="92" y2="103" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="63" y1="91" x2="87" y2="115" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="87" y1="91" x2="63" y2="115" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="185" y1="86" x2="185" y2="120" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="168" y1="103" x2="202" y2="103" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="173" y1="91" x2="197" y2="115" stroke="#C0C0C0" stroke-width="1.5"/>
+      <line x1="197" y1="91" x2="173" y2="115" stroke="#C0C0C0" stroke-width="1.5"/>
+      <text x="130" y="126" text-anchor="middle" font-size="8" fill="white" font-weight="bold">1950s Classic Car</text>
+    </svg>`,
+
+    // Stage 3: 1970s Muscle Car
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2C3E50"/><stop offset="100%" stop-color="#34495E"/></linearGradient>
+        <linearGradient id="car3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FF6600"/><stop offset="100%" stop-color="#CC3300"/></linearGradient>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg3)" rx="10"/>
+      <rect x="0" y="105" width="260" height="25" fill="#555"/>
+      <rect x="0" y="103" width="260" height="4" fill="#333"/>
+      <!-- Road yellow line -->
+      <line x1="0" y1="109" x2="260" y2="109" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="20,15"/>
+      <!-- Wide body muscle car -->
+      <path d="M25 95 L25 78 Q30 58 60 56 L200 56 Q232 57 238 76 L238 95 Z" fill="url(#car3)"/>
+      <!-- Hood bulge (scoop) -->
+      <ellipse cx="130" cy="63" rx="40" ry="8" fill="#CC3300"/>
+      <ellipse cx="130" cy="60" rx="20" ry="5" fill="#AA2200"/>
+      <!-- Cabin -->
+      <path d="M70 56 Q75 38 90 36 L170 36 Q186 38 192 56 Z" fill="#DD5500"/>
+      <!-- Windows -->
+      <rect x="78" y="39" width="46" height="16" fill="#87CEEB" rx="3" opacity="0.8"/>
+      <rect x="130" y="39" width="46" height="16" fill="#87CEEB" rx="3" opacity="0.8"/>
+      <!-- Racing stripes -->
+      <rect x="115" y="36" width="10" height="60" fill="white" opacity="0.3"/>
+      <rect x="135" y="36" width="10" height="60" fill="white" opacity="0.3"/>
+      <!-- Headlights -->
+      <rect x="24" y="68" width="15" height="10" fill="#FFD700" rx="2"/>
+      <rect x="24" y="80" width="15" height="8" fill="#FF6347" rx="2"/>
+      <!-- Tail lights -->
+      <rect x="230" y="68" width="12" height="10" fill="#FF4444" rx="2"/>
+      <rect x="230" y="80" width="12" height="8" fill="#FF6347" rx="2"/>
+      <!-- Bumpers -->
+      <rect x="20" y="88" width="18" height="6" fill="#888" rx="2"/>
+      <rect x="230" y="88" width="18" height="6" fill="#888" rx="2"/>
+      <!-- Exhaust pipes -->
+      <rect x="225" y="97" width="20" height="4" fill="#555" rx="2"/>
+      <rect x="225" y="102" width="20" height="4" fill="#555" rx="2"/>
+      <!-- Wheels -->
+      <circle cx="72" cy="102" r="18" fill="#111" stroke="#888" stroke-width="3"/>
+      <circle cx="72" cy="102" r="10" fill="#333"/>
+      <circle cx="72" cy="102" r="5" fill="#888"/>
+      <circle cx="188" cy="102" r="18" fill="#111" stroke="#888" stroke-width="3"/>
+      <circle cx="188" cy="102" r="10" fill="#333"/>
+      <circle cx="188" cy="102" r="5" fill="#888"/>
+      <!-- Wheel spokes -->
+      <line x1="72" y1="84" x2="72" y2="120" stroke="#888" stroke-width="2"/>
+      <line x1="54" y1="102" x2="90" y2="102" stroke="#888" stroke-width="2"/>
+      <line x1="59" y1="89" x2="85" y2="115" stroke="#888" stroke-width="2"/>
+      <line x1="85" y1="89" x2="59" y2="115" stroke="#888" stroke-width="2"/>
+      <line x1="188" y1="84" x2="188" y2="120" stroke="#888" stroke-width="2"/>
+      <line x1="170" y1="102" x2="206" y2="102" stroke="#888" stroke-width="2"/>
+      <line x1="175" y1="89" x2="201" y2="115" stroke="#888" stroke-width="2"/>
+      <line x1="201" y1="89" x2="175" y2="115" stroke="#888" stroke-width="2"/>
+      <text x="130" y="126" text-anchor="middle" font-size="8" fill="#FFD700" font-weight="bold">1970s Muscle Car</text>
+    </svg>`,
+
+    // Stage 4: 1990s Sedan
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg4" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#E8F5E9"/><stop offset="100%" stop-color="#B3E5FC"/></linearGradient>
+        <linearGradient id="car4" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#2196F3"/><stop offset="100%" stop-color="#0D47A1"/></linearGradient>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg4)" rx="10"/>
+      <rect x="0" y="105" width="260" height="25" fill="#888"/>
+      <rect x="0" y="103" width="260" height="4" fill="#666"/>
+      <!-- Road markings -->
+      <rect x="10" y="108" width="40" height="3" fill="white" rx="1" opacity="0.6"/>
+      <rect x="70" y="108" width="40" height="3" fill="white" rx="1" opacity="0.6"/>
+      <rect x="130" y="108" width="40" height="3" fill="white" rx="1" opacity="0.6"/>
+      <rect x="200" y="108" width="40" height="3" fill="white" rx="1" opacity="0.6"/>
+      <!-- Sedan body -->
+      <path d="M30 96 L30 80 Q32 65 50 65 L210 65 Q228 65 230 80 L230 96 Z" fill="url(#car4)"/>
+      <!-- Trunk/rear deck -->
+      <path d="M200 65 L215 60 L230 75 L230 96 L200 96" fill="#1565C0"/>
+      <!-- Hood -->
+      <path d="M30 80 Q32 65 50 65 L65 65 L60 75" fill="#1976D2"/>
+      <!-- Cabin with 3-box shape -->
+      <path d="M60 65 Q62 42 78 40 L182 40 Q200 42 202 65 Z" fill="#1976D2"/>
+      <!-- Windows -->
+      <rect x="68" y="43" width="55" height="20" fill="#B3E5FC" rx="3" opacity="0.9"/>
+      <rect x="127" y="43" width="55" height="20" fill="#B3E5FC" rx="3" opacity="0.9"/>
+      <line x1="124" y1="43" x2="124" y2="63" stroke="#1565C0" stroke-width="2"/>
+      <!-- Headlights -->
+      <rect x="28" y="72" width="16" height="9" fill="#FFFDE7" rx="2"/>
+      <rect x="28" y="72" width="16" height="9" fill="url(#headlight4)" rx="2"/>
+      <!-- Tail lights -->
+      <rect x="228" y="72" width="8" height="9" fill="#FF5252" rx="2"/>
+      <rect x="222" y="72" width="8" height="9" fill="#FF1744" rx="2"/>
+      <!-- Door handles -->
+      <rect x="95" y="78" width="15" height="3" fill="#90CAF9" rx="1"/>
+      <rect x="152" y="78" width="15" height="3" fill="#90CAF9" rx="1"/>
+      <!-- Bumpers -->
+      <rect x="22" y="90" width="12" height="7" fill="#BBB" rx="2"/>
+      <rect x="232" y="90" width="12" height="7" fill="#BBB" rx="2"/>
+      <!-- Wheels -->
+      <circle cx="78" cy="103" r="17" fill="#111" stroke="#90CAF9" stroke-width="3"/>
+      <circle cx="78" cy="103" r="9" fill="#333"/>
+      <circle cx="78" cy="103" r="5" fill="#90CAF9"/>
+      <circle cx="182" cy="103" r="17" fill="#111" stroke="#90CAF9" stroke-width="3"/>
+      <circle cx="182" cy="103" r="9" fill="#333"/>
+      <circle cx="182" cy="103" r="5" fill="#90CAF9"/>
+      <!-- Spokes -->
+      <line x1="78" y1="86" x2="78" y2="120" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="61" y1="103" x2="95" y2="103" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="66" y1="91" x2="90" y2="115" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="90" y1="91" x2="66" y2="115" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="182" y1="86" x2="182" y2="120" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="165" y1="103" x2="199" y2="103" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="170" y1="91" x2="194" y2="115" stroke="#90CAF9" stroke-width="1.5"/>
+      <line x1="194" y1="91" x2="170" y2="115" stroke="#90CAF9" stroke-width="1.5"/>
+      <text x="130" y="126" text-anchor="middle" font-size="8" fill="#333" font-weight="bold">1990s Sedan</text>
+    </svg>`,
+
+    // Stage 5: 2000s SUV
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E0F7FA"/><stop offset="100%" stop-color="#F3E5F5"/></linearGradient>
+        <linearGradient id="car5" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#5D4037"/><stop offset="100%" stop-color="#3E2723"/></linearGradient>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg5)" rx="10"/>
+      <rect x="0" y="105" width="260" height="25" fill="#999"/>
+      <rect x="0" y="103" width="260" height="4" fill="#777"/>
+      <!-- SUV tall boxy body -->
+      <rect x="28" y="55" width="204" height="50" fill="url(#car5)" rx="6"/>
+      <!-- Roof rack -->
+      <rect x="40" y="52" width="180" height="6" fill="#4E342E" rx="2"/>
+      <rect x="50" y="48" width="20" height="6" fill="#333" rx="1"/>
+      <rect x="90" y="48" width="20" height="6" fill="#333" rx="1"/>
+      <rect x="150" y="48" width="20" height="6" fill="#333" rx="1"/>
+      <rect x="190" y="48" width="20" height="6" fill="#333" rx="1"/>
+      <!-- Windows -->
+      <rect x="38" y="60" width="50" height="25" fill="#B2EBF2" rx="3" opacity="0.8"/>
+      <rect x="93" y="60" width="50" height="25" fill="#B2EBF2" rx="3" opacity="0.8"/>
+      <rect x="148" y="60" width="50" height="25" fill="#B2EBF2" rx="3" opacity="0.8"/>
+      <!-- Vertical dividers -->
+      <rect x="90" y="58" width="3" height="29" fill="#3E2723"/>
+      <rect x="145" y="58" width="3" height="29" fill="#3E2723"/>
+      <rect x="200" y="58" width="3" height="29" fill="#3E2723"/>
+      <!-- Body cladding -->
+      <rect x="28" y="92" width="204" height="8" fill="#333" rx="3"/>
+      <!-- Headlights -->
+      <rect x="26" y="62" width="14" height="10" fill="#FFFDE7" rx="2"/>
+      <rect x="26" y="74" width="14" height="8" fill="#FF9800" rx="2"/>
+      <!-- Tail lights -->
+      <rect x="228" y="62" width="10" height="10" fill="#FF5252" rx="2"/>
+      <rect x="228" y="74" width="10" height="8" fill="#FF6D00" rx="2"/>
+      <!-- Spare tire on back (simplified) -->
+      <circle cx="232" cy="82" r="8" fill="#3E2723" stroke="#555" stroke-width="2"/>
+      <circle cx="232" cy="82" r="4" fill="#555"/>
+      <!-- Roof antenna -->
+      <rect x="200" y="42" width="2" height="8" fill="#888"/>
+      <!-- Bumpers -->
+      <rect x="18" y="98" width="15" height="7" fill="#555" rx="2"/>
+      <rect x="233" y="98" width="15" height="7" fill="#555" rx="2"/>
+      <!-- Step bar -->
+      <rect x="40" y="100" width="180" height="5" fill="#555" rx="2"/>
+      <!-- Wheels (bigger) -->
+      <circle cx="75" cy="105" r="19" fill="#111" stroke="#777" stroke-width="4"/>
+      <circle cx="75" cy="105" r="10" fill="#444"/>
+      <circle cx="75" cy="105" r="5" fill="#888"/>
+      <circle cx="185" cy="105" r="19" fill="#111" stroke="#777" stroke-width="4"/>
+      <circle cx="185" cy="105" r="10" fill="#444"/>
+      <circle cx="185" cy="105" r="5" fill="#888"/>
+      <!-- Spokes -->
+      <line x1="75" y1="86" x2="75" y2="124" stroke="#777" stroke-width="2"/>
+      <line x1="56" y1="105" x2="94" y2="105" stroke="#777" stroke-width="2"/>
+      <line x1="62" y1="92" x2="88" y2="118" stroke="#777" stroke-width="2"/>
+      <line x1="88" y1="92" x2="62" y2="118" stroke="#777" stroke-width="2"/>
+      <line x1="185" y1="86" x2="185" y2="124" stroke="#777" stroke-width="2"/>
+      <line x1="166" y1="105" x2="204" y2="105" stroke="#777" stroke-width="2"/>
+      <line x1="172" y1="92" x2="198" y2="118" stroke="#777" stroke-width="2"/>
+      <line x1="198" y1="92" x2="172" y2="118" stroke="#777" stroke-width="2"/>
+      <text x="130" y="127" text-anchor="middle" font-size="8" fill="#333" font-weight="bold">2000s SUV</text>
+    </svg>`,
+
+    // Stage 6: 2010s Sports Car
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1a1a2e"/><stop offset="100%" stop-color="#16213e"/></linearGradient>
+        <linearGradient id="car6" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#F44336"/><stop offset="100%" stop-color="#B71C1C"/></linearGradient>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg6)" rx="10"/>
+      <!-- Stars -->
+      <circle cx="20" cy="15" r="1" fill="white" opacity="0.8"/>
+      <circle cx="50" cy="8" r="1.5" fill="white" opacity="0.8"/>
+      <circle cx="90" cy="20" r="1" fill="white" opacity="0.6"/>
+      <circle cx="200" cy="10" r="1" fill="white" opacity="0.8"/>
+      <circle cx="240" cy="25" r="1.5" fill="white" opacity="0.7"/>
+      <rect x="0" y="105" width="260" height="25" fill="#1a1a1a"/>
+      <rect x="0" y="103" width="260" height="4" fill="#111"/>
+      <!-- Road glow -->
+      <rect x="0" y="104" width="260" height="2" fill="#F44336" opacity="0.3"/>
+      <!-- Very low, sleek sports car -->
+      <path d="M20 96 L20 85 Q25 72 45 70 L215 70 Q238 72 242 85 L242 96 Z" fill="url(#car6)"/>
+      <!-- Sleek cabin - very low -->
+      <path d="M75 70 Q82 50 100 47 L165 47 Q182 50 188 70 Z" fill="#C62828"/>
+      <!-- Windows -->
+      <path d="M82 70 Q87 52 100 50 L130 50 L130 70 Z" fill="#4FC3F7" opacity="0.85"/>
+      <path d="M130 70 L130 50 L165 50 Q180 52 185 70 Z" fill="#4FC3F7" opacity="0.85"/>
+      <!-- Splitter front -->
+      <path d="M18 90 L35 90 L35 98 L18 98" fill="#111" rx="2"/>
+      <!-- Rear spoiler -->
+      <rect x="195" y="65" width="30" height="5" fill="#B71C1C" rx="2"/>
+      <rect x="205" y="60" width="15" height="8" fill="#222" rx="1"/>
+      <!-- LED headlights (strip style) -->
+      <rect x="22" y="75" width="20" height="3" fill="#FFEB3B" rx="1"/>
+      <rect x="22" y="80" width="20" height="6" fill="#FFFDE7" rx="2"/>
+      <!-- Tail lights LED strip -->
+      <rect x="226" y="73" width="18" height="3" fill="#FF5252" rx="1"/>
+      <rect x="226" y="78" width="18" height="6" fill="#FF1744" rx="2"/>
+      <!-- Side skirts -->
+      <rect x="30" y="92" width="200" height="5" fill="#B71C1C" rx="2"/>
+      <!-- Exhaust -->
+      <rect x="215" y="94" width="15" height="4" fill="#333" rx="2"/>
+      <rect x="215" y="99" width="15" height="4" fill="#333" rx="2"/>
+      <!-- Wheels -->
+      <circle cx="70" cy="103" r="18" fill="#111" stroke="#F44336" stroke-width="3"/>
+      <circle cx="70" cy="103" r="10" fill="#222"/>
+      <circle cx="70" cy="103" r="4" fill="#F44336"/>
+      <circle cx="192" cy="103" r="18" fill="#111" stroke="#F44336" stroke-width="3"/>
+      <circle cx="192" cy="103" r="10" fill="#222"/>
+      <circle cx="192" cy="103" r="4" fill="#F44336"/>
+      <!-- Alloy wheel spokes -->
+      <line x1="70" y1="85" x2="70" y2="121" stroke="#F44336" stroke-width="2"/>
+      <line x1="52" y1="103" x2="88" y2="103" stroke="#F44336" stroke-width="2"/>
+      <line x1="57" y1="90" x2="83" y2="116" stroke="#F44336" stroke-width="2"/>
+      <line x1="83" y1="90" x2="57" y2="116" stroke="#F44336" stroke-width="2"/>
+      <line x1="192" y1="85" x2="192" y2="121" stroke="#F44336" stroke-width="2"/>
+      <line x1="174" y1="103" x2="210" y2="103" stroke="#F44336" stroke-width="2"/>
+      <line x1="179" y1="90" x2="205" y2="116" stroke="#F44336" stroke-width="2"/>
+      <line x1="205" y1="90" x2="179" y2="116" stroke="#F44336" stroke-width="2"/>
+      <text x="130" y="126" text-anchor="middle" font-size="8" fill="#F44336" font-weight="bold">2010s Sports Car</text>
+    </svg>`,
+
+    // Stage 7: 2024 Luxury Supercar
+    `<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" width="260" height="130">
+      <defs>
+        <linearGradient id="bg7" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0a0a0a"/><stop offset="100%" stop-color="#1a0533"/></linearGradient>
+        <linearGradient id="car7body" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFD700"/><stop offset="100%" stop-color="#CC9A00"/></linearGradient>
+        <linearGradient id="car7top" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFC107"/><stop offset="100%" stop-color="#FF8F00"/></linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect width="260" height="130" fill="url(#bg7)" rx="10"/>
+      <!-- Glow floor reflection -->
+      <ellipse cx="130" cy="115" rx="100" ry="10" fill="#FFD700" opacity="0.15" filter="url(#glow)"/>
+      <rect x="0" y="110" width="260" height="20" fill="#0a0a0a"/>
+      <rect x="0" y="108" width="260" height="4" fill="#111"/>
+      <!-- Neon floor line -->
+      <rect x="0" y="108" width="260" height="2" fill="#FFD700" opacity="0.5"/>
+      <!-- Stars and glow -->
+      <circle cx="15" cy="10" r="1.5" fill="#FFD700" opacity="0.8" filter="url(#glow)"/>
+      <circle cx="55" cy="5" r="1" fill="white" opacity="0.7"/>
+      <circle cx="100" cy="15" r="1.5" fill="#00BFFF" opacity="0.8"/>
+      <circle cx="200" cy="8" r="1" fill="white" opacity="0.6"/>
+      <circle cx="245" cy="18" r="1.5" fill="#FFD700" opacity="0.7" filter="url(#glow)"/>
+      <!-- Ultra-low supercar body -->
+      <path d="M15 98 L15 85 Q18 72 30 70 L230 70 Q244 72 248 85 L248 98 Z" fill="url(#car7body)"/>
+      <!-- Body side lines -->
+      <path d="M30 85 L230 85" stroke="#FFE082" stroke-width="1.5" opacity="0.7"/>
+      <path d="M25 92 L238 92" stroke="#CC9A00" stroke-width="1"/>
+      <!-- Ultra low cabin -->
+      <path d="M80 70 Q90 50 108 47 L158 47 Q176 50 186 70 Z" fill="url(#car7top)"/>
+      <!-- Windows - tinted dark -->
+      <path d="M87 70 Q93 53 108 50 L130 50 L130 70 Z" fill="#1a1a2e" opacity="0.9"/>
+      <path d="M130 70 L130 50 L158 50 Q174 53 180 70 Z" fill="#1a1a2e" opacity="0.9"/>
+      <!-- Window frame gold -->
+      <path d="M80 70 Q90 50 108 47 L158 47 Q176 50 186 70 Z" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+      <!-- Front carbon fiber diffuser -->
+      <path d="M13 90 L30 88 L30 99 L13 99" fill="#222" rx="2"/>
+      <line x1="15" y1="91" x2="15" y2="98" stroke="#333" stroke-width="2"/>
+      <line x1="19" y1="91" x2="19" y2="98" stroke="#333" stroke-width="2"/>
+      <line x1="23" y1="91" x2="23" y2="98" stroke="#333" stroke-width="2"/>
+      <!-- Rear diffuser -->
+      <path d="M232 88 L250 90 L250 99 L232 99" fill="#222"/>
+      <line x1="235" y1="91" x2="235" y2="98" stroke="#333" stroke-width="2"/>
+      <line x1="240" y1="91" x2="240" y2="98" stroke="#333" stroke-width="2"/>
+      <line x1="245" y1="91" x2="245" y2="98" stroke="#333" stroke-width="2"/>
+      <!-- Active rear wing -->
+      <rect x="192" y="62" width="40" height="5" fill="#CC9A00" rx="2"/>
+      <rect x="200" y="58" width="6" height="6" fill="#888" rx="1"/>
+      <rect x="220" y="58" width="6" height="6" fill="#888" rx="1"/>
+      <!-- LED headlight strips -->
+      <rect x="17" y="73" width="25" height="2" fill="#00BFFF" rx="1" opacity="0.9"/>
+      <rect x="17" y="77" width="25" height="8" fill="#FFFDE7" rx="2"/>
+      <circle cx="30" cy="81" r="4" fill="#FFFDE7"/>
+      <!-- LED tail lights -->
+      <rect x="227" y="73" width="22" height="2" fill="#FF1744" rx="1" opacity="0.9"/>
+      <rect x="227" y="77" width="22" height="8" fill="#FF1744" rx="2"/>
+      <!-- Side vent -->
+      <rect x="140" y="75" width="25" height="10" fill="#CC9A00" rx="3"/>
+      <line x1="143" y1="76" x2="143" y2="84" stroke="#FFD700" stroke-width="1"/>
+      <line x1="148" y1="76" x2="148" y2="84" stroke="#FFD700" stroke-width="1"/>
+      <line x1="153" y1="76" x2="153" y2="84" stroke="#FFD700" stroke-width="1"/>
+      <line x1="158" y1="76" x2="158" y2="84" stroke="#FFD700" stroke-width="1"/>
+      <!-- Triple exhaust -->
+      <rect x="228" y="98" width="12" height="3" fill="#444" rx="2"/>
+      <rect x="228" y="102" width="12" height="3" fill="#444" rx="2"/>
+      <rect x="228" y="106" width="12" height="3" fill="#444" rx="2"/>
+      <!-- Wheels - huge, detailed -->
+      <circle cx="68" cy="105" r="20" fill="#0a0a0a" stroke="#FFD700" stroke-width="3" filter="url(#glow)"/>
+      <circle cx="68" cy="105" r="13" fill="#111"/>
+      <circle cx="68" cy="105" r="6" fill="#FFD700"/>
+      <circle cx="192" cy="105" r="20" fill="#0a0a0a" stroke="#FFD700" stroke-width="3" filter="url(#glow)"/>
+      <circle cx="192" cy="105" r="13" fill="#111"/>
+      <circle cx="192" cy="105" r="6" fill="#FFD700"/>
+      <!-- Multi-spoke alloy wheels front -->
+      <line x1="68" y1="85" x2="68" y2="125" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="48" y1="105" x2="88" y2="105" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="54" y1="91" x2="82" y2="119" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="82" y1="91" x2="54" y2="119" stroke="#FFD700" stroke-width="2.5"/>
+      <!-- Between spokes -->
+      <line x1="58" y1="88" x2="78" y2="122" stroke="#CC9A00" stroke-width="1.5"/>
+      <line x1="78" y1="88" x2="58" y2="122" stroke="#CC9A00" stroke-width="1.5"/>
+      <!-- Rear wheels -->
+      <line x1="192" y1="85" x2="192" y2="125" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="172" y1="105" x2="212" y2="105" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="178" y1="91" x2="206" y2="119" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="206" y1="91" x2="178" y2="119" stroke="#FFD700" stroke-width="2.5"/>
+      <line x1="182" y1="88" x2="202" y2="122" stroke="#CC9A00" stroke-width="1.5"/>
+      <line x1="202" y1="88" x2="182" y2="122" stroke="#CC9A00" stroke-width="1.5"/>
+      <!-- Brake calipers -->
+      <rect x="62" y="99" width="8" height="5" fill="#FF1744" rx="1"/>
+      <rect x="186" y="99" width="8" height="5" fill="#FF1744" rx="1"/>
+      <text x="130" y="127" text-anchor="middle" font-size="8" fill="#FFD700" font-weight="bold" filter="url(#glow)">2024 Luxury Supercar 🏁</text>
+    </svg>`
+  ];
+  return svgs[Math.min(stage, svgs.length-1)];
+}
+
+function renderVehiclePanel(containerId) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const stage = gameState.vehicleStage;
+  const pct = Math.round((stage / (vehicleStages.length-1)) * 100);
+  const isLast = stage === vehicleStages.length-1;
+
+  let dots = vehicleStages.map((s,i) =>
+    `<div class="stage-dot ${i<stage?'completed':''} ${i===stage?'active':''}"></div>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="vehicle-title">🚗 Vehicle Evolution</div>
+    <div class="vehicle-display" id="${containerId}SVG">
+      ${getVehicleSVG(stage)}
+    </div>
+    <div class="vehicle-stage-name">${vehicleStages[stage].era}: ${vehicleStages[stage].name}</div>
+    <div class="vehicle-progress-bar">
+      <div class="vehicle-progress-fill" style="width:${pct}%"></div>
+    </div>
+    <div class="stage-dots">${dots}</div>
+    ${isLast ? '<div style="text-align:center;margin-top:8px;font-size:0.8rem;color:#f39c12;font-weight:700;animation:pulse 2s infinite;">🏁 Maximum Evolution!</div>' : ''}
+  `;
+}
+
+function advanceVehicle() {
+  if(gameState.vehicleStage < vehicleStages.length-1) {
+    gameState.vehicleStage++;
+    if(gameState.vehicleStage === vehicleStages.length-1) {
+      setTimeout(() => {
+        launchConfetti(80);
+        playEngineRev();
+        document.querySelectorAll('.vehicle-display').forEach(el => {
+          el.style.animation = 'celebrationGlow 1.5s infinite';
+        });
+      }, 300);
+    }
+  }
+  // Re-render all vehicle panels
+  ['mcqVehicle','tfVehicle','matchVehicle','memoryVehicle'].forEach(id => {
+    if(document.getElementById(id) && document.getElementById(id).innerHTML !== '') {
+      renderVehiclePanel(id);
+    }
+  });
+  updateAllTopBars();
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function launchConfetti(count=40) {
+  const colors = ['#f39c12','#27ae60','#3498db','#e74c3c','#9b59b6','#1abc9c','#f1c40f'];
+  for(let i=0;i<count;i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.animationDuration = (2+Math.random()*3) + 's';
+      c.style.animationDelay = '0s';
+      c.style.borderRadius = Math.random()>0.5 ? '50%' : '2px';
+      c.style.width = (6+Math.random()*8) + 'px';
+      c.style.height = (6+Math.random()*8) + 'px';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }, i*30);
+  }
+}
+
+// ============================================================
+// TRANSITION
+// ============================================================
+function showTransition(icon, text, duration=1500) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('transitionOverlay');
+    document.getElementById('transitionIcon').textContent = icon;
+    document.getElementById('transitionText').textContent = text;
+    overlay.classList.add('show');
+    setTimeout(() => {
+      overlay.classList.remove('show');
+      setTimeout(resolve, 500);
+    }, duration);
+  });
+}
+
+// ============================================================
+// SCREEN SWITCHING
+// ============================================================
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(screenId);
+  if(el) el.classList.add('active');
+  gameState.currentScreen = screenId;
+
+  // Show/hide notes button
+  const notesBtn = document.getElementById('notesToggleBtn');
+  const notesSections = ['screenMCQ','screenTF','screenMatch','screenMemory'];
+  notesBtn.style.display = notesSections.includes(screenId) ? 'block' : 'none';
+}
+
+// ============================================================
+// REGISTRATION
+// ============================================================
+function checkName() {
+  const val = document.getElementById('studentNameInput').value.trim();
+  const words = val.split(/\s+/).filter(w => w.length > 0);
+  const btn = document.getElementById('startBtn');
+  const err = document.getElementById('nameError');
+  if(words.length >= 2 && val.length >= 4) {
+    btn.classList.add('enabled');
+    err.style.display = 'none';
+  } else {
+    btn.classList.remove('enabled');
+    if(val.length > 0) err.style.display = 'block';
+    else err.style.display = 'none';
+  }
+}
+
+async function startGame() {
+  const val = document.getElementById('studentNameInput').value.trim();
+  const words = val.split(/\s+/).filter(w => w.length > 0);
+  if(words.length < 2) return;
+  gameState.studentName = val;
+  gameState.startTime = new Date();
+  playRainSound();
+  await showTransition('💧', 'Preparing your Water Cycle Adventure!');
+  showSectionIntro('mcq');
+}
+
+// ============================================================
+// STUDY NOTES
+// ============================================================
+function toggleNotes() {
+  const panel = document.getElementById('notesPanel');
+  gameState.notesOpen = !gameState.notesOpen;
+  if(gameState.notesOpen) {
+    panel.classList.add('open');
+    gameState.notesOpenCount++;
+    updateAllTopBars();
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+function searchNotes(query) {
+  const content = document.getElementById('notesContent');
+  if(!query.trim()) {
+    // Remove all highlights
+    content.innerHTML = content.innerHTML.replace(/<mark[^>]*>(.*?)<\/mark>/gi, '$1');
+    return;
+  }
+  // Simple highlight
+  const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while(walker.nextNode()) textNodes.push(walker.currentNode);
+  textNodes.forEach(node => {
+    if(node.parentElement.tagName === 'MARK') return;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    if(regex.test(node.textContent)) {
+      const span = document.createElement('span');
+      span.innerHTML = node.textContent.replace(regex, '<mark class="highlight">$1</mark>');
+      node.parentNode.replaceChild(span, node);
+    }
+  });
+}
+
+// ============================================================
+// SCORE CALCULATION
+// ============================================================
+function getScorePct() {
+  const maxMCQ = 10, maxTF = 5, maxMatch = gameState.matchTotal || 8;
+  const total = maxMCQ + maxTF + maxMatch;
+  const got = gameState.mcqScore + gameState.tfScore + gameState.matchScore;
+  if(total === 0) return 0;
+  return Math.round((got / total) * 100);
+}
+
+// ============================================================
+// SECTION INTRO
+// ============================================================
+function showSectionIntro(section) {
+  const intros = {
+    mcq: {
+      icon: '📝',
+      title: 'Multiple Choice Questions',
+      desc: 'Test your knowledge of the Water Cycle with 10 multiple choice questions. Read each question carefully and choose the best answer!',
+      info: ['10 Questions', 'One question at a time', '✓ GRADED — contributes to your final score', '📖 Study Notes available'],
+      badge: '✓ GRADED',
+      badgeClass: '',
+      btn: 'Start MCQ Section',
+      action: () => startMCQ()
+    },
+    tf: {
+      icon: '✅',
+      title: 'True or False',
+      desc: 'Decide whether each statement about the Water Cycle is True or False. Think carefully!',
+      info: ['5 Questions', 'One question at a time', '✓ GRADED — contributes to your final score', '📖 Study Notes available'],
+      badge: '✓ GRADED',
+      badgeClass: '',
+      btn: 'Start True/False',
+      action: () => startTF()
+    },
+    match: {
+      icon: '🔗',
+      title: 'Matching Activity',
+      desc: 'Match each Water Cycle term with its correct definition or description. Click a term, then click its match!',
+      info: ['8 pairs to match', 'Click to connect terms', '✓ GRADED — contributes to your final score', '📖 Study Notes available'],
+      badge: '✓ GRADED',
+      badgeClass: '',
+      btn: 'Start Matching',
+      action: () => startMatching()
+    },
+    memory: {
+      icon: '🃏',
+      title: 'Memory Matching Challenge',
+      desc: 'Find all 8 matching pairs of Water Cycle concepts! Flip cards to reveal and match them. You MUST complete this to earn your certificate!',
+      info: ['16 cards in a 4×4 grid', '8 matching pairs to find', '⚠️ NOT GRADED — but REQUIRED for certificate', '📖 Study Notes available'],
+      badge: '⚠️ NOT GRADED — Required',
+      badgeClass: 'not-graded',
+      btn: 'Start Memory Game',
+      action: () => startMemory()
+    }
+  };
+
+  const intro = intros[section];
+  buildTopBar('introTopBar');
+
+  const card = document.getElementById('introCard');
+  card.innerHTML = `
+    <div class="intro-icon">${intro.icon}</div>
+    <div class="intro-title">${intro.title} <span class="section-badge ${intro.badgeClass}" style="font-size:0.7rem;">${intro.badge}</span></div>
+    <div class="intro-desc">${intro.desc}</div>
+    <div class="intro-info">
+      ${intro.info.map(i => `<p>• ${i}</p>`).join('')}
+    </div>
+    <button class="btn-begin" onclick="introStart_${section}()">🚀 ${intro.btn}</button>
+  `;
+
+  // Attach global handler
+  window[`introStart_${section}`] = intro.action;
+
+  showScreen('screenIntro');
+}
+
+// ============================================================
+// MCQ SECTION
+// ============================================================
+const mcqQuestions = [
+  {
+    q: "What are the TWO main driving forces of the water cycle?",
+    choices: ["A) Wind and rain", "B) Gravity and temperature", "C) Sunlight and gravity", "D) Clouds and oceans"],
+    correct: 2,
+    explanation: "The two driving forces are energy from the Sun (for evaporation/transpiration) and gravity (for precipitation/runoff)."
+  },
+  {
+    q: "Which process involves plants releasing water vapor into the atmosphere through their leaves?",
+    choices: ["A) Evaporation", "B) Transpiration", "C) Condensation", "D) Precipitation"],
+    correct: 1,
+    explanation: "Transpiration is the process where plants release water vapor through their leaves into the atmosphere."
+  },
+  {
+    q: "What happens during condensation?",
+    choices: ["A) Liquid changes to gas", "B) Water falls as rain", "C) Gas (water vapor) changes back into liquid", "D) Water flows downhill"],
+    correct: 2,
+    explanation: "Condensation occurs when water vapor (gas) cools and changes back into liquid droplets, forming clouds."
+  },
+  {
+    q: "How does the Sun cause evaporation?",
+    choices: ["A) It cools the water", "B) It breaks the bonds between water molecules, giving them energy to escape as gas", "C) It creates wind", "D) It forms clouds"],
+    correct: 1,
+    explanation: "The Sun's energy breaks bonds between water molecules, giving them enough energy to escape the liquid surface as water vapor (gas)."
+  },
+  {
+    q: "Which of the following is NOT a type of precipitation?",
+    choices: ["A) Rain", "B) Snow", "C) Erosion", "D) Sleet"],
+    correct: 2,
+    explanation: "Erosion is a land process, NOT a form of precipitation. Rain, snow, sleet, and hail are all types of precipitation."
+  },
+  {
+    q: "What are storage areas for water in the water cycle called?",
+    choices: ["A) Reservoirs", "B) Aquifers", "C) Watersheds", "D) Tributaries"],
+    correct: 0,
+    explanation: "Storage areas for water in the water cycle are called reservoirs — these include oceans, lakes, groundwater, and ice caps."
+  },
+  {
+    q: "Where is groundwater stored?",
+    choices: ["A) In clouds", "B) In rivers only", "C) In the atmosphere", "D) In cracks and pores beneath Earth's surface"],
+    correct: 3,
+    explanation: "Groundwater is stored underground in cracks and pores beneath Earth's surface."
+  },
+  {
+    q: "Which sphere of Earth contains ALL the water (oceans, lakes, rivers, groundwater, ice)?",
+    choices: ["A) Atmosphere", "B) Hydrosphere", "C) Biosphere", "D) Geosphere"],
+    correct: 1,
+    explanation: "The hydrosphere encompasses all water on Earth — including oceans, lakes, rivers, groundwater, and ice caps."
+  },
+  {
+    q: "Which statement about the water cycle is TRUE?",
+    choices: ["A) It begins at the ocean", "B) It begins at the clouds", "C) It has no beginning or end — it is continuous", "D) It ends at the ground"],
+    correct: 2,
+    explanation: "The water cycle is a continuous process with no beginning or end. Water constantly moves through Earth's systems."
+  },
+  {
+    q: "Which of the following is NOT part of the water cycle?",
+    choices: ["A) Nitrogen fixation", "B) Evaporation", "C) Precipitation", "D) Condensation"],
+    correct: 0,
+    explanation: "Nitrogen fixation is part of the nitrogen cycle, NOT the water cycle. Evaporation, precipitation, and condensation are all water cycle processes."
+  }
+];
+
+let mcqOrder = [], mcqIdx = 0, mcqAnsweredThis = false;
+
+function startMCQ() {
+  mcqOrder = shuffle([...Array(mcqQuestions.length).keys()]);
+  mcqIdx = 0;
+  gameState.mcqScore = 0;
+  gameState.mcqAnswered = 0;
+  renderVehiclePanel('mcqVehicle');
+  buildTopBar('mcqTopBar');
+  showScreen('screenMCQ');
+  showMCQQuestion();
+}
+
+function showMCQQuestion() {
+  buildTopBar('mcqTopBar');
+  renderVehiclePanel('mcqVehicle');
+  const area = document.getElementById('mcqQuestionArea');
+  if(mcqIdx >= mcqQuestions.length) {
+    finishMCQ();
+    return;
+  }
+  const qData = mcqQuestions[mcqOrder[mcqIdx]];
+  const choiceOrder = shuffle([0,1,2,3]);
+  const pct = Math.round((mcqIdx / mcqQuestions.length)*100);
+
+  area.innerHTML = `
+    <div class="question-card">
+      <div class="question-counter">Question ${mcqIdx+1} of ${mcqQuestions.length}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="question-text">💧 ${qData.q}</div>
+      <div class="choices" id="mcqChoices">
+        ${choiceOrder.map(ci => `
+          <button class="choice-btn" onclick="answerMCQ(this, ${ci}, ${qData.correct})">
+            ${qData.choices[ci]}
+          </button>
+        `).join('')}
+      </div>
+      <div id="mcqFeedback"></div>
+    </div>
+  `;
+  mcqAnsweredThis = false;
+}
+
+function answerMCQ(btn, chosen, correct) {
+  if(mcqAnsweredThis) return;
+  mcqAnsweredThis = true;
+  const qData = mcqQuestions[mcqOrder[mcqIdx]];
+
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  if(chosen === correct) {
+    btn.classList.add('correct');
+    gameState.mcqScore++;
+    playCorrect();
+    document.getElementById('mcqFeedback').innerHTML = `
+      <div class="feedback-box correct">✅ Correct! ${qData.explanation}</div>
+      <button class="btn-next" onclick="nextMCQ()">Next Question ➡️</button>
+    `;
+  } else {
+    btn.classList.add('wrong');
+    playWrong();
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      if(b.textContent.trim() === qData.choices[correct].trim()) b.classList.add('correct');
+    });
+    document.getElementById('mcqFeedback').innerHTML = `
+      <div class="feedback-box wrong">❌ Incorrect. ${qData.explanation}</div>
+      <button class="btn-next" onclick="nextMCQ()">Next Question ➡️</button>
+    `;
+  }
+  gameState.mcqAnswered = mcqIdx + 1;
+  updateAllTopBars();
+}
+
+function nextMCQ() {
+  mcqIdx++;
+  showMCQQuestion();
+}
+
+async function finishMCQ() {
+  playLevelComplete();
+  advanceVehicle();
+  launchConfetti(30);
+  await showTransition('📝', `MCQ Complete! Score: ${gameState.mcqScore}/10`);
+  showSectionIntro('tf');
+}
+
+// ============================================================
+// TRUE/FALSE SECTION
+// ============================================================
+const tfQuestions = [
+  {
+    q: "The atmosphere and hydrosphere overlap — water can exist in both spheres at the same time.",
+    correct: true,
+    explanation: "TRUE! Water vapor in the atmosphere AND liquid water in the hydrosphere means both spheres contain water simultaneously."
+  },
+  {
+    q: "Transpiration releases water from plants (biosphere) into the atmosphere.",
+    correct: true,
+    explanation: "TRUE! Transpiration is the process by which plants release water vapor through their leaves into the atmosphere."
+  },
+  {
+    q: "Gravity is the driving force that causes evaporation.",
+    correct: false,
+    explanation: "FALSE! Evaporation is driven by energy from the SUN, not gravity. Gravity drives precipitation and runoff (water moving downward)."
+  },
+  {
+    q: "The water cycle has a definite beginning and end point.",
+    correct: false,
+    explanation: "FALSE! The water cycle is a CONTINUOUS process with NO beginning or end. Water constantly cycles through Earth's systems."
+  },
+  {
+    q: "Surface runoff flows downhill due to the force of gravity.",
+    correct: true,
+    explanation: "TRUE! Gravity pulls water downhill across the land surface, causing surface runoff from high areas (like mountains) toward lower areas (like lakes)."
+  }
+];
+
+let tfOrder = [], tfIdx = 0, tfAnsweredThis = false;
+
+function startTF() {
+  tfOrder = shuffle([...Array(tfQuestions.length).keys()]);
+  tfIdx = 0;
+  gameState.tfScore = 0;
+  renderVehiclePanel('tfVehicle');
+  buildTopBar('tfTopBar');
+  showScreen('screenTF');
+  showTFQuestion();
+}
+
+function showTFQuestion() {
+  buildTopBar('tfTopBar');
+  renderVehiclePanel('tfVehicle');
+  const area = document.getElementById('tfQuestionArea');
+  if(tfIdx >= tfQuestions.length) {
+    finishTF();
+    return;
+  }
+  const qData = tfQuestions[tfOrder[tfIdx]];
+  const pct = Math.round((tfIdx / tfQuestions.length)*100);
+
+  area.innerHTML = `
+    <div class="question-card">
+      <div class="question-counter">Question ${tfIdx+1} of ${tfQuestions.length}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="question-text">💧 ${qData.q}</div>
+      <div class="tf-btns">
+        <button class="tf-btn true-btn" onclick="answerTF(this, true)">✅ TRUE</button>
+        <button class="tf-btn false-btn" onclick="answerTF(this, false)">❌ FALSE</button>
+      </div>
+      <div id="tfFeedback"></div>
+    </div>
+  `;
+  tfAnsweredThis = false;
+}
+
+function answerTF(btn, answer) {
+  if(tfAnsweredThis) return;
+  tfAnsweredThis = true;
+  const qData = tfQuestions[tfOrder[tfIdx]];
+  document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
+
+  if(answer === qData.correct) {
+    btn.classList.add('correct');
+    gameState.tfScore++;
+    playCorrect();
+    document.getElementById('tfFeedback').innerHTML = `
+      <div class="feedback-box correct">✅ Correct! ${qData.explanation}</div>
+      <button class="btn-next" onclick="nextTF()">Next Question ➡️</button>
+    `;
+  } else {
+    btn.classList.add('wrong');
+    playWrong();
+    document.querySelectorAll('.tf-btn').forEach(b => {
+      if((b.textContent.includes('TRUE') && qData.correct) || (b.textContent.includes('FALSE') && !qData.correct)) {
+        b.classList.add('correct');
+      }
+    });
+    document.getElementById('tfFeedback').innerHTML = `
+      <div class="feedback-box wrong">❌ Incorrect. ${qData.explanation}</div>
+      <button class="btn-next" onclick="nextTF()">Next Question ➡️</button>
+    `;
+  }
+  updateAllTopBars();
+}
+
+function nextTF() {
+  tfIdx++;
+  showTFQuestion();
+}
+
+async function finishTF() {
+  playLevelComplete();
+  advanceVehicle();
+  launchConfetti(30);
+  await showTransition('✅', `True/False Complete! Score: ${gameState.tfScore}/5`);
+  showSectionIntro('match');
+}
+
+// ============================================================
+// MATCHING SECTION
+// ============================================================
+const matchPairs = [
+  { term: "Evaporation", def: "Liquid water changes into water vapor at the surface" },
+  { term: "Condensation", def: "Water vapor changes back into liquid droplets" },
+  { term: "Transpiration", def: "Plants release water vapor through their leaves" },
+  { term: "Precipitation", def: "Water falls as rain, snow, sleet, or hail" },
+  { term: "Surface Runoff", def: "Water flows downhill over the land surface" },
+  { term: "Reservoirs", def: "Storage areas for water in the water cycle" },
+  { term: "Gravity", def: "Force that causes precipitation and runoff to fall/flow downhill" },
+  { term: "Hydrosphere", def: "All water on Earth including oceans, lakes, rivers, and ice" }
+];
+
+let matchState = {
+  selectedTerm: null,
+  selectedDef: null,
+  matched: [],
+  wrongPairs: [],
+  score: 0,
+  termOrder: [],
+  defOrder: []
+};
+
+function startMatching() {
+  gameState.matchTotal = matchPairs.length;
+  matchState = {
+    selectedTerm: null,
+    selectedDef: null,
+    matched: [],
+    wrongPairs: [],
+    score: 0,
+    termOrder: shuffle([...Array(matchPairs.length).keys()]),
+    defOrder: shuffle([...Array(matchPairs.length).keys()])
+  };
+  renderVehiclePanel('matchVehicle');
+  buildTopBar('matchTopBar');
+  showScreen('screenMatch');
+  renderMatchActivity();
+}
+
+function renderMatchActivity() {
+  const area = document.getElementById('matchArea');
+  area.innerHTML = `
+    <div class="matching-container">
+      <p style="text-align:center;color:#666;margin-bottom:15px;font-size:0.9rem;">
+        <strong>Instructions:</strong> Click a term on the LEFT, then click its matching definition on the RIGHT. 
+        <span id="matchProgress">Matched: 0 / ${matchPairs.length}</span>
+      </p>
+      <div class="matching-grid" id="matchGrid">
+        <div class="match-col" id="termCol"></div>
+        <div class="match-col" id="defCol"></div>
+      </div>
+    </div>
+  `;
+  renderMatchItems();
+}
+
+function renderMatchItems() {
+  const termCol = document.getElementById('termCol');
+  const defCol = document.getElementById('defCol');
+
+  termCol.innerHTML = matchState.termOrder.map(i => {
+    const isMatched = matchState.matched.includes(i);
+    return `
+      <div class="match-item ${isMatched?'matched':''} ${matchState.selectedTerm===i&&!isMatched?'selected':''}"
+        id="term_${i}"
+        onclick="${isMatched?'':` selectTerm(${i})`}"
+        style="${isMatched?'pointer-events:none;':''}">
+        💧 ${matchPairs[i].term}
+      </div>
+    `;
+  }).join('');
+
+  defCol.innerHTML = matchState.defOrder.map(i => {
+    const isMatched = matchState.matched.includes(i);
+    return `
+      <div class="match-item ${isMatched?'matched':''} ${matchState.selectedDef===i&&!isMatched?'selected':''}"
+        id="def_${i}"
+        onclick="${isMatched?'':` selectDef(${i})`}"
+        style="${isMatched?'pointer-events:none;':''}">
+        ${matchPairs[i].def}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('matchProgress').textContent = `Matched: ${matchState.matched.length} / ${matchPairs.length}`;
+}
+
+function selectTerm(idx) {
+  matchState.selectedTerm = idx;
+  renderMatchItems();
+  if(matchState.selectedDef !== null) checkMatch();
+}
+
+function selectDef(idx) {
+  matchState.selectedDef = idx;
+  renderMatchItems();
+  if(matchState.selectedTerm !== null) checkMatch();
+}
+
+function checkMatch() {
+  const ti = matchState.selectedTerm;
+  const di = matchState.selectedDef;
+  if(ti === null || di === null) return;
+
+  if(ti === di) {
+    // Correct match!
+    matchState.matched.push(ti);
+    matchState.score++;
+    gameState.matchScore = matchState.score;
+    playMatch();
+    launchConfetti(10);
+    matchState.selectedTerm = null;
+    matchState.selectedDef = null;
+    renderMatchItems();
+
+    if(matchState.matched.length === matchPairs.length) {
+      setTimeout(finishMatching, 600);
+    }
+  } else {
+    // Wrong match
+    playWrong();
+    const termEl = document.getElementById(`term_${ti}`);
+    const defEl = document.getElementById(`def_${di}`);
+    if(termEl) termEl.classList.add('wrong-match');
+    if(defEl) defEl.classList.add('wrong-match');
+    setTimeout(() => {
+      matchState.selectedTerm = null;
+      matchState.selectedDef = null;
+      renderMatchItems();
+    }, 700);
+  }
+  updateAllTopBars();
+}
+
+async function finishMatching() {
+  playLevelComplete();
+  advanceVehicle();
+  launchConfetti(40);
+  await showTransition('🔗', `Matching Complete! Score: ${gameState.matchScore}/${matchPairs.length}`);
+  checkPerformanceGate();
+}
+
+// ============================================================
+// PERFORMANCE GATE
+// ============================================================
+function checkPerformanceGate() {
+  buildTopBar('gateTopBar');
+  const pct = getScorePct();
+  const passed = pct >= 75;
+
+  const content = document.getElementById('gateContent');
+
+  if(passed) {
+    playAchievement();
+    launchConfetti(60);
+    content.innerHTML = `
+      <div class="intro-card" style="max-width:600px;border:3px solid #27ae60;">
+        <div style="font-size:4rem;margin-bottom:15px;">🎉</div>
+        <h2 style="color:#27ae60;font-size:1.8rem;margin-bottom:10px;">Excellent Work!</h2>
+        <div style="font-size:3rem;font-weight:800;color:#27ae60;margin:15px 0;">${pct}%</div>
+        <p style="color:#555;margin-bottom:20px;">You scored ${pct}% on the graded sections. You've unlocked the Memory Challenge!</p>
+        <div style="background:#d5f5e3;border-radius:12px;padding:15px;margin-bottom:20px;">
+          <p>📝 MCQ: ${gameState.mcqScore}/10</p>
+          <p>✅ True/False: ${gameState.tfScore}/5</p>
+          <p>🔗 Matching: ${gameState.matchScore}/${matchPairs.length}</p>
+        </div>
+        <p style="color:#27ae60;font-weight:700;margin-bottom:20px;">🃏 Memory Game unlocked! Complete it to earn your certificate!</p>
+        <button class="btn-begin" onclick="showSectionIntro('memory')">🚀 Start Memory Challenge!</button>
+      </div>
+    `;
+  } else {
+    playWrong();
+    content.innerHTML = `
+      <div class="locked-overlay">
+        <div class="lock-icon">🔒</div>
+        <h2>Score Too Low</h2>
+        <div style="font-size:3rem;font-weight:800;color:#e74c3c;margin:10px 0;">${pct}%</div>
+        <p>You scored ${pct}%. You need at least <strong>75%</strong> to continue.</p>
+        <div style="background:#fde8e8;border-radius:12px;padding:15px;margin:15px 0;">
+          <p>📝 MCQ: ${gameState.mcqScore}/10</p>
+          <p>✅ True/False: ${gameState.tfScore}/5</p>
+          <p>🔗 Matching: ${gameState.matchScore}/${matchPairs.length}</p>
+        </div>
+        <p style="margin-bottom:20px;font-weight:600;">📖 Review your Study Notes and try again. You can do it!</p>
+        <p style="color:#888;font-size:0.85rem;">Returning to start in <span id="countdown">5</span> seconds...</p>
+        <button class="btn-retry" onclick="resetGame()">🔄 Try Again Now</button>
+      </div>
+    `;
+    let count = 5;
+    const timer = setInterval(() => {
+      count--;
+      const el = document.getElementById('countdown');
+      if(el) el.textContent = count;
+      if(count <= 0) {
+        clearInterval(timer);
+        resetGame();
+      }
+    }, 1000);
+  }
+
+  showScreen('screenGate');
+}
+
+function resetGame() {
+  const name = gameState.studentName;
+  Object.assign(gameState, {
+    studentName: name,
+    currentScreen: 'reg',
+    vehicleStage: 0,
+    mcqScore: 0,
+    tfScore: 0,
+    matchScore: 0,
+    matchTotal: 0,
+    notesOpenCount: 0,
+    notesOpen: false,
+    mcqAnswered: 0,
+    tfAnswered: 0,
+    memoryCompleted: false,
+    memoryPairsFound: 0,
+    memoryTime: 0
+  });
+
+  document.getElementById('studentNameInput').value = name;
+  document.getElementById('startBtn').classList.add('enabled');
+  showScreen('screenReg');
+}
+
+// ============================================================
+// MEMORY GAME
+// ============================================================
+const memoryPairs = [
+  { a: "☀️ Evaporation", b: "Liquid → Gas at surface" },
+  { a: "🌿 Transpiration", b: "Plants release water vapor" },
+  { a: "💨 Condensation", b: "Gas → Liquid (cloud drops)" },
+  { a: "🌧️ Precipitation", b: "Rain, snow, sleet, hail" },
+  { a: "⬇️ Surface Runoff", b: "Water flows downhill" },
+  { a: "🏔️ Reservoirs", b: "Water storage areas" },
+  { a: "🌍 Hydrosphere", b: "All water on Earth" },
+  { a: "⚡ Gravity", b: "Pulls water downward" }
+];
+
+let memoryCards = [], memoryFlipped = [], memoryMatched = [], memoryLocked = false, memoryTimer = null, memorySeconds = 0;
+
+function startMemory() {
+  // Build 16-card deck
+  memoryCards = [];
+  memoryPairs.forEach((pair, i) => {
+    memoryCards.push({ id: i*2, pairId: i, text: pair.a, side: 'a' });
+    memoryCards.push({ id: i*2+1, pairId: i, text: pair.b, side: 'b' });
+  });
+  memoryCards = shuffle(memoryCards);
+  memoryFlipped = [];
+  memoryMatched = [];
+  memoryLocked = false;
+  memorySeconds = 0;
+  gameState.memoryPairsFound = 0;
+
+  renderVehiclePanel('memoryVehicle');
+  buildTopBar('memoryTopBar');
+  showScreen('screenMemory');
+  renderMemoryGrid();
+  startMemoryTimer();
+}
+
+function startMemoryTimer() {
+  if(memoryTimer) clearInterval(memoryTimer);
+  memoryTimer = setInterval(() => {
+    memorySeconds++;
+    updateMemoryStats();
+  }, 1000);
+}
+
+function updateMemoryStats() {
+  const stats = document.getElementById('memoryStats');
+  if(!stats) return;
+  const mins = Math.floor(memorySeconds/60);
+  const secs = memorySeconds%60;
+  stats.innerHTML = `
+    <div class="memory-stat">🃏 Pairs Found: ${gameState.memoryPairsFound} / 8</div>
+    <div class="memory-stat">⏱️ Time: ${mins}:${secs.toString().padStart(2,'0')}</div>
+    <div class="memory-stat">🎯 Remaining: ${8-gameState.memoryPairsFound}</div>
+  `;
+}
+
+function renderMemoryGrid() {
+  const grid = document.getElementById('memoryGrid');
+  grid.innerHTML = memoryCards.map((card, idx) => `
+    <div class="memory-card ${memoryMatched.includes(card.pairId)?'matched':''}" 
+         id="memCard_${idx}" 
+         onclick="flipCard(${idx})">
+      <div class="card-inner">
+        <div class="card-front">💧</div>
+        <div class="card-back">${card.text}</div>
+      </div>
+    </div>
+  `).join('');
+  updateMemoryStats();
+}
+
+function flipCard(idx) {
+  if(memoryLocked) return;
+  const card = memoryCards[idx];
+  if(memoryMatched.includes(card.pairId)) return;
+  if(memoryFlipped.length === 1 && memoryFlipped[0] === idx) return;
+  if(memoryFlipped.length >= 2) return;
+
+  playCardFlip();
+  const cardEl = document.getElementById(`memCard_${idx}`);
+  cardEl.classList.add('flipped');
+  memoryFlipped.push(idx);
+
+  if(memoryFlipped.length === 2) {
+    memoryLocked = true;
+    setTimeout(() => checkMemoryMatch(), 800);
+  }
+}
+
+function checkMemoryMatch() {
+  const [i1, i2] = memoryFlipped;
+  const c1 = memoryCards[i1];
+  const c2 = memoryCards[i2];
+
+  if(c1.pairId === c2.pairId && c1.side !== c2.side) {
+    // Match!
+    memoryMatched.push(c1.pairId);
+    gameState.memoryPairsFound++;
+    playMatch();
+    launchConfetti(15);
+
+    document.getElementById(`memCard_${i1}`).classList.add('matched');
+    document.getElementById(`memCard_${i2}`).classList.add('matched');
+
+    memoryFlipped = [];
+    memoryLocked = false;
+    updateMemoryStats();
+
+    if(memoryMatched.length === 8) {
+      clearInterval(memoryTimer);
+      setTimeout(finishMemory, 800);
+    }
+  } else {
+    // No match
+    playWrong();
+    setTimeout(() => {
+      document.getElementById(`memCard_${i1}`).classList.remove('flipped');
+      document.getElementById(`memCard_${i2}`).classList.remove('flipped');
+      memoryFlipped = [];
+      memoryLocked = false;
+    }, 600);
+  }
+}
+
+async function finishMemory() {
+  gameState.memoryCompleted = true;
+  gameState.memoryTime = memorySeconds;
+  playAchievement();
+  advanceVehicle();
+  launchConfetti(80);
+  gameState.completionDate = new Date().toLocaleDateString('en-GB', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  gameState.completionTime = new Date().toLocaleTimeString('en-GB');
+  await showTransition('🃏', 'Memory Game Complete! 🎉 Preparing your results...');
+  showResults();
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+function showResults() {
+  buildTopBar('resultsTopBar');
+  const pct = getScorePct();
+  const total = 10 + 5 + matchPairs.length;
+  const got = gameState.mcqScore + gameState.tfScore + gameState.matchScore;
+
+  let rating, ratingClass;
+  if(pct >= 90) { rating = '🌟 Excellent!'; ratingClass = 'rating-excellent'; }
+  else if(pct >= 80) { rating = '⭐ Very Good!'; ratingClass = 'rating-vgood'; }
+  else if(pct >= 75) { rating = '👍 Good!'; ratingClass = 'rating-good'; }
+  else { rating = '📚 Needs Improvement'; ratingClass = 'rating-needs'; }
+
+  const style = `--pct: ${pct*3.6}deg`;
+  const conicPct = `${pct}%`;
+
+  document.getElementById('resultsContent').innerHTML = `
+    <div class="results-card">
+      <div class="results-title">🎊 Game Complete! 🎊</div>
+      <p style="text-align:center;color:#666;margin-bottom:15px;">Well done, <strong>${gameState.studentName}</strong>!</p>
+
+      <div class="score-circle" style="--pct:${pct*3.6}deg; background: conic-gradient(#27ae60 0deg ${pct*3.6}deg, #eee ${pct*3.6}deg 360deg);">
+        <div class="score-circle-inner">
+          <div class="score-pct">${pct}%</div>
+          <div class="score-label">Final Score</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-bottom:15px;">
+        <span class="rating-badge ${ratingClass}">${rating}</span>
+      </div>
+
+      <div class="results-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-label">📝 MCQ Score</div>
+          <div class="breakdown-value">${gameState.mcqScore}/10</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">✅ True/False Score</div>
+          <div class="breakdown-value">${gameState.tfScore}/5</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🔗 Matching Score</div>
+          <div class="breakdown-value">${gameState.matchScore}/${matchPairs.length}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🃏 Memory Game</div>
+          <div class="breakdown-value" style="color:#27ae60;">Completed ✓</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">📊 Total (Graded)</div>
+          <div class="breakdown-value">${got}/${total}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">📖 Notes Referenced</div>
+          <div class="breakdown-value">${gameState.notesOpenCount}×</div>
+        </div>
+      </div>
+
+      <div style="background:#f0f8ff;border-radius:12px;padding:12px;margin-bottom:15px;font-size:0.85rem;color:#555;">
+        <p>🚗 <strong>Vehicle Evolution:</strong> You reached Stage ${gameState.vehicleStage+1}: ${vehicleStages[gameState.vehicleStage].name}!</p>
+        <p>📅 <strong>Completion Date:</strong> ${gameState.completionDate}</p>
+        <p>🕐 <strong>Completion Time:</strong> ${gameState.completionTime}</p>
+        <p>⏱️ <strong>Memory Game Time:</strong> ${Math.floor(gameState.memoryTime/60)}m ${gameState.memoryTime%60}s</p>
+      </div>
+
+      <div style="text-align:center;">
+        <button class="btn-cert" onclick="showCertificate()" style="font-size:1.1rem;padding:15px 30px;">
+          🎓 View My Certificate
+        </button>
+      </div>
+    </div>
+  `;
+
+  showScreen('screenResults');
+  playCertificate();
+  launchConfetti(60);
+}
+
+// ============================================================
+// CERTIFICATE
+// ============================================================
+function showCertificate() {
+  buildTopBar('certTopBar');
+  const pct = getScorePct();
+
+  document.getElementById('certContent').innerHTML = `
+    <div style="text-align:center;margin:10px 0;">
+      <button class="btn-print" onclick="window.print()">🖨️ Print Certificate</button>
+      <button class="btn-cert" onclick="downloadCert()">⬇️ Download as PDF</button>
+    </div>
+    <div class="certificate" id="theCertificate">
+      <div class="cert-inner-border">
+        <div class="cert-watermark">💧 Water Cycle 💧</div>
+
+        <div style="font-size:2.5rem;margin-bottom:10px;">🏅</div>
+        <div class="cert-title">CERTIFICATE OF SUCCESSFUL COMPLETION</div>
+        <div class="cert-subtitle">★ ★ ★ THE WATER CYCLE ★ ★ ★</div>
+        <div class="cert-school">Institute of Applied Technology — AQB</div>
+
+        <div class="cert-presented">This is to certify that</div>
+        <div class="cert-name">${gameState.studentName}</div>
+
+        <div class="cert-body">
+          has successfully completed the interactive educational game<br>
+          <strong>"Water Cycle Adventure"</strong><br>
+          demonstrating knowledge of Earth's water systems, including evaporation,<br>
+          condensation, transpiration, precipitation, and surface runoff,<br>
+          driven by energy from the Sun and the force of Gravity.
+        </div>
+
+        <div class="cert-score">Final Score: ${pct}% — ${pct>=90?'Excellent':pct>=80?'Very Good':pct>=75?'Good':'Satisfactory'}</div>
+
+        <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:0.85rem;color:#555;margin-bottom:15px;">
+          <span>📝 MCQ: ${gameState.mcqScore}/10</span>
+          <span>✅ T/F: ${gameState.tfScore}/5</span>
+          <span>🔗 Matching: ${gameState.matchScore}/${matchPairs.length}</span>
+          <span>🃏 Memory: Completed ✓</span>
+        </div>
+
+        <div class="cert-date">📅 Awarded on: ${gameState.completionDate}</div>
+
+        <div class="cert-sigs">
+          <div class="cert-sig">
+            <div style="font-size:1.2rem;font-style:italic;color:#0a3d62;margin-bottom:5px;">Mr. Moayed Alkhliefat</div>
+            <div class="cert-sig-line"></div>
+            <div class="cert-sig-name">Mr. Moayed Alkhliefat</div>
+            <div class="cert-sig-title">Teacher / Instructor</div>
+          </div>
+          <div class="cert-sig" style="display:flex;align-items:center;justify-content:center;">
+            <div class="cert-seal">
+              IAT<br>AQB<br>💧<br>Excellence
+            </div>
+          </div>
+          <div class="cert-sig">
+            <div style="font-size:1.2rem;font-style:italic;color:#0a3d62;margin-bottom:5px;">Official Seal</div>
+            <div class="cert-sig-line"></div>
+            <div class="cert-sig-name">Institute of Applied Technology</div>
+            <div class="cert-sig-title">AQB Campus</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  showScreen('screenCert');
+  playCertificate();
+  launchConfetti(100);
+}
+
+function downloadCert() {
+  window.print();
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function shuffle(arr) {
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+createBgDrops();
+updateAllDateTimes();
+
+// Print styles
+const printStyle = document.createElement('style');
+printStyle.textContent = `
+  @media print {
+    body * { visibility: hidden; }
+    .certificate, .certificate * { visibility: visible; }
+    .certificate { position: fixed; top: 0; left: 0; width: 100%; }
+    .music-btn { display: none; }
+  }
+`;
+document.head.appendChild(printStyle);
+
+// LocalStorage save
+setInterval(() => {
+  localStorage.setItem('waterCycleGame', JSON.stringify(gameState));
+}, 5000);
+
+console.log('💧 Water Cycle Adventure Game Loaded!');
+</script>
+</body>
+</html>
